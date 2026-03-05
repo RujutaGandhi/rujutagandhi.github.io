@@ -25,6 +25,7 @@ This site showcases my background, experience, and AI product demos. Built as a 
 
 ## Built With
 
+- Claude
 - HTML / CSS / JavaScript (single file, no frameworks)
 - Hosted via GitHub Pages
 
