@@ -586,6 +586,17 @@
         </div>
         <span class="demo-link">Learn more →</span>
       </div>
+      <div class="demo-card" onclick="openModal('portfolio-site')" style="cursor:pointer;">
+        <div class="demo-icon">🌐</div>
+        <h3>AI PM Portfolio Website</h3>
+        <p>A configurable, single-file portfolio built to showcase AI demos — designed to get hired as an AI Product Manager.</p>
+        <div class="demo-tech">
+          <span>Claude (Anthropic)</span>
+          <span>HTML / CSS / JS</span>
+          <span>GitHub Pages</span>
+        </div>
+        <span class="demo-link" style="cursor:pointer;">Learn more →</span>
+  </div>
     </div>
   </div>
 </div>
@@ -662,39 +673,106 @@
   </div>
 </div>
 
-<script>
-  // Mobile menu
-  function toggleMenu() {
-    document.getElementById('mobile-menu').classList.toggle('open');
-  }
-  function closeMenu() {
-    document.getElementById('mobile-menu').classList.remove('open');
-  }
-  // Close mobile menu when clicking outside
-  document.addEventListener('click', function(e) {
-    const menu = document.getElementById('mobile-menu');
-    const hamburger = document.querySelector('.hamburger');
-    if (menu.classList.contains('open') && !menu.contains(e.target) && !hamburger.contains(e.target)) {
-      closeMenu();
-    }
-  });
+<div class="modal-overlay" id="modal-overlay-portfolio-site" onclick="handleOverlayClickById(event, 'modal-overlay-portfolio-site')">
+  <div class="modal" id="modal-portfolio-site">
+    <div class="modal-header">
+      <div>
+        <div class="modal-icon">🌐</div>
+        <div class="modal-title">AI PM Portfolio Website</div>
+        <div class="modal-subtitle">Configurable Single-Page Portfolio · GitHub Pages</div>
+      </div>
+      <button class="modal-close" onclick="closeModalById('modal-overlay-portfolio-site')">✕</button>
+    </div>
+    <div class="modal-body">
 
-  // Modal
+      <div class="modal-section">
+        <div class="modal-section-label">The Problem</div>
+        <p>Most PM portfolios are static PDFs or generic LinkedIn profiles — they don't show <em>how</em> a product manager thinks, builds, or ships. As someone pivoting into AI PM roles, I needed a living showcase that could host real, interactive demos and be updated quickly without a full engineering setup.</p>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-label">What I Built</div>
+        <p>A single-file, zero-dependency portfolio site hosted on GitHub Pages under my own namespace (<strong>rujutagandhi.github.io</strong>). It features a scrollable layout with sections for About, Experience, Education, Skills, and AI Demos. Each demo has a card grid entry and a detailed modal with product context — problem, decisions, and tech stack. The entire site lives in one HTML file, making it easy to maintain and version-control.</p>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-label">Key Product Decisions</div>
+        <ul>
+          <li><strong>Single-file architecture</strong> — No build pipeline, no dependencies. Push one file to GitHub and it's live instantly. Reduces friction for continuous updates.</li>
+          <li><strong>Modal-based demo detail</strong> — Instead of separate pages per demo (which would need routing), modals keep the user in context and load instantly with no extra network requests.</li>
+          <li><strong>Demo-card pattern</strong> — Standardized Problem / What I Built / Key Decisions / Tech Stack structure signals PM thinking rigor, not just developer output.</li>
+          <li><strong>GitHub Pages hosting</strong> — Free, SSL-secured, and tied to the professional namespace rujutagandhi.github.io. Zero ops overhead.</li>
+          <li><strong>AI-assisted development with Claude</strong> — Used Claude as a co-pilot for design and code generation, demonstrating practical AI tool fluency to hiring managers.</li>
+        </ul>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-label">Tech Stack</div>
+        <div class="modal-tech">
+          <span>HTML5</span>
+          <span>CSS3 (custom properties)</span>
+          <span>Vanilla JavaScript</span>
+          <span>GitHub Pages</span>
+          <span>Claude (Anthropic)</span>
+          <span>Fraunces + Outfit (Google Fonts)</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <a href="https://rujutagandhi.github.io" target="_blank" class="modal-btn-primary">View live site →</a>
+        <a href="https://github.com/RujutaGandhi/rujutagandhi.github.io" target="_blank" class="modal-btn-ghost">View source on GitHub</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+ 
+<script>
+  // Open a modal by its ID suffix (e.g. 'decision-maker', 'portfolio-site')
   function openModal(id) {
-    document.getElementById('modal-overlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
+    // Try new per-modal overlay first, fall back to legacy single overlay
+    const overlay = document.getElementById('modal-overlay-' + id)
+                 || document.getElementById('modal-overlay');
+    if (overlay) {
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
   }
+
+  // Legacy close (for existing Easy Decision Maker modal)
   function closeModal() {
-    document.getElementById('modal-overlay').classList.remove('open');
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) overlay.classList.remove('open');
     document.body.style.overflow = '';
   }
+
+  // Close a specific modal by overlay ID
+  function closeModalById(overlayId) {
+    const overlay = document.getElementById(overlayId);
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // Legacy overlay click handler
   function handleOverlayClick(e) {
     if (e.target === document.getElementById('modal-overlay')) closeModal();
   }
+
+  // Per-modal overlay click handler
+  function handleOverlayClickById(e, overlayId) {
+    if (e.target === document.getElementById(overlayId)) closeModalById(overlayId);
+  }
+
+  // Close all modals on Escape
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-overlay.open').forEach(function(el) {
+        el.classList.remove('open');
+      });
+      document.body.style.overflow = '';
+    }
   });
 </script>
-
 </body>
 </html>
