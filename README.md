@@ -22,8 +22,7 @@ This site showcases my background, experience, and AI product demos. Built as a 
 | Demo | Description | Live Link |
 |------|-------------|-----------|
 | Easy Decision Maker | AI-powered decision intelligence using SWOT, PESTLE, and Comparison Tables | [Try it](https://the-tie-breaker-707002892310.us-west1.run.app/) |
-| AI PM Portfolio | A configurable, single-file portfolio built to showcase AI demos — designed to get hired as an AI Product Manager.
-| [Visit](https://rujutagandhi.github.io/) |
+| AI PM Portfolio | A configurable, single-file portfolio built to showcase AI demos — designed to get hired as an AI Product Manager. | [Visit](https://rujutagandhi.github.io/) |
 
 ## Built With
 
