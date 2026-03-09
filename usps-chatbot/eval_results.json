@@ -1,0 +1,519 @@
+{
+  "evaluated_at": "2026-03-09T21:45:54Z",
+  "match_threshold": 0.3,
+  "match_count": 5,
+  "summary": {
+    "minilm": {
+      "model": "all-MiniLM-L6-v2",
+      "hit_rate_at_5": 0.9,
+      "mrr": 0.75
+    },
+    "multiqa": {
+      "model": "multi-qa-MiniLM-L6-cos-v1",
+      "hit_rate_at_5": 1.0,
+      "mrr": 0.825
+    }
+  },
+  "questions": [
+    {
+      "question": "How do I track my package?",
+      "expected": "USPS Tracking® - The Basics",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Where is my package? Tracking Status Help",
+              "similarity": 0.686194956302643
+            },
+            {
+              "rank": 2,
+              "title": "Informed Delivery® - The Basics",
+              "similarity": 0.667291700839996
+            },
+            {
+              "rank": 3,
+              "title": "Rapid Dropoff Station",
+              "similarity": 0.652678549289703
+            },
+            {
+              "rank": 4,
+              "title": "Merchant Returns Application",
+              "similarity": 0.644208688861391
+            }
+          ],
+          "hit": false,
+          "rank": null,
+          "mrr": 0.0
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Rapid Dropoff Station",
+              "similarity": 0.639341115951538
+            },
+            {
+              "rank": 2,
+              "title": "Merchant Returns Application",
+              "similarity": 0.600800597619976
+            },
+            {
+              "rank": 3,
+              "title": "Informed Delivery® - The Basics",
+              "similarity": 0.599800884723663
+            },
+            {
+              "rank": 4,
+              "title": "USPS Tracking® - The Basics",
+              "similarity": 0.587855535383688
+            }
+          ],
+          "hit": true,
+          "rank": 4,
+          "mrr": 0.25
+        }
+      }
+    },
+    {
+      "question": "What do I do if my package is missing?",
+      "expected": "Missing Mail - The Basics",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Where is my package? Tracking Status Help",
+              "similarity": 0.577268148823492
+            },
+            {
+              "rank": 2,
+              "title": "Missing Mail - The Basics",
+              "similarity": 0.540925708953995
+            },
+            {
+              "rank": 3,
+              "title": "International Inquiries - The Basics",
+              "similarity": 0.471843079571634
+            }
+          ],
+          "hit": true,
+          "rank": 2,
+          "mrr": 0.5
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Missing Mail - The Basics",
+              "similarity": 0.615848201985604
+            },
+            {
+              "rank": 2,
+              "title": "Where is my package? Tracking Status Help",
+              "similarity": 0.468945890665054
+            },
+            {
+              "rank": 3,
+              "title": "Ordering Free Shipping Supplies",
+              "similarity": 0.418780148029327
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        }
+      }
+    },
+    {
+      "question": "How do I hold my mail while on vacation?",
+      "expected": "USPS Hold Mail® - The Basics",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "No mail delivery?",
+              "similarity": 0.492638886413642
+            },
+            {
+              "rank": 2,
+              "title": "USPS Hold Mail® - The Basics",
+              "similarity": 0.491951019051611
+            },
+            {
+              "rank": 3,
+              "title": "Picking Up Mail that is Being Held at Your Post Office",
+              "similarity": 0.470247612290157
+            }
+          ],
+          "hit": true,
+          "rank": 2,
+          "mrr": 0.5
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "USPS Hold Mail® - The Basics",
+              "similarity": 0.530996727734514
+            },
+            {
+              "rank": 2,
+              "title": "No mail delivery?",
+              "similarity": 0.489389120267526
+            },
+            {
+              "rank": 3,
+              "title": "What do I Need to Know When Packaging Military Mail?",
+              "similarity": 0.471454944784039
+            },
+            {
+              "rank": 4,
+              "title": "What is the Best Way to Prepare a Parcel for Shipping?",
+              "similarity": 0.456781932232072
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        }
+      }
+    },
+    {
+      "question": "How do I change my address?",
+      "expected": "Change of Address - The Basics",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "What does PS Form 3575 (Mail Forwarding Change of Address Order) Look Like?",
+              "similarity": 0.561109933919308
+            },
+            {
+              "rank": 2,
+              "title": "Change of Address - The Basics",
+              "similarity": 0.559290068128409
+            },
+            {
+              "rank": 3,
+              "title": "Informed Delivery® - The Basics",
+              "similarity": 0.516855480296077
+            }
+          ],
+          "hit": true,
+          "rank": 2,
+          "mrr": 0.5
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "What does PS Form 3575 (Mail Forwarding Change of Address Order) Look Like?",
+              "similarity": 0.604149067154583
+            },
+            {
+              "rank": 2,
+              "title": "Change of Address - The Basics",
+              "similarity": 0.590663706699832
+            },
+            {
+              "rank": 3,
+              "title": "Informed Delivery® - The Basics",
+              "similarity": 0.539606804894594
+            }
+          ],
+          "hit": true,
+          "rank": 2,
+          "mrr": 0.5
+        }
+      }
+    },
+    {
+      "question": "How do I get a PO Box?",
+      "expected": "PO Box™ - The Basics",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "PO Box™ - The Basics",
+              "similarity": 0.605382359348676
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "PO Box™ - The Basics",
+              "similarity": 0.607410609722137
+            },
+            {
+              "rank": 2,
+              "title": "Post Office Boxes Online (POBOL) - General Information",
+              "similarity": 0.534491749673591
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        }
+      }
+    },
+    {
+      "question": "How do I request a redelivery?",
+      "expected": "Redelivery - The Basics",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Redelivery - The Basics",
+              "similarity": 0.57342174211611
+            },
+            {
+              "rank": 2,
+              "title": "Where is my package? Tracking Status Help",
+              "similarity": 0.484008594870824
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Redelivery - The Basics",
+              "similarity": 0.658085584640503
+            },
+            {
+              "rank": 2,
+              "title": "International Inquiries - The Basics",
+              "similarity": 0.594430124427685
+            },
+            {
+              "rank": 3,
+              "title": "Where is my package? Tracking Status Help",
+              "similarity": 0.586133557144808
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        }
+      }
+    },
+    {
+      "question": "How do I sign up for Informed Delivery?",
+      "expected": "Informed Delivery® - The Basics",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Informed Delivery® - The Basics",
+              "similarity": 0.689809560775757
+            },
+            {
+              "rank": 2,
+              "title": "USPS Electronic Signature Online®",
+              "similarity": 0.653533816337585
+            },
+            {
+              "rank": 3,
+              "title": "USPS Delivery Instructions™ - The Basics",
+              "similarity": 0.609703040701333
+            },
+            {
+              "rank": 4,
+              "title": "Where is my package? Tracking Status Help",
+              "similarity": 0.606996595859528
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Informed Delivery® - The Basics",
+              "similarity": 0.647233186414827
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        }
+      }
+    },
+    {
+      "question": "How do I print a shipping label online?",
+      "expected": "Click-N-Ship® - The Basics",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Click-N-Ship® - The Basics",
+              "similarity": 0.746957108197041
+            },
+            {
+              "rank": 2,
+              "title": "How do I print a Click-N-Ship® label?",
+              "similarity": 0.697801810371985
+            },
+            {
+              "rank": 3,
+              "title": "Label Broker® Feature",
+              "similarity": 0.673246185377014
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "How do I print a Click-N-Ship® label?",
+              "similarity": 0.711455404758453
+            },
+            {
+              "rank": 2,
+              "title": "Click-N-Ship® - The Basics",
+              "similarity": 0.687083721160889
+            }
+          ],
+          "hit": true,
+          "rank": 2,
+          "mrr": 0.5
+        }
+      }
+    },
+    {
+      "question": "Can I ship lithium batteries?",
+      "expected": "Can I Ship Lithium Batteries?",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Can I Ship Lithium Batteries?",
+              "similarity": 0.704580092976104
+            },
+            {
+              "rank": 2,
+              "title": "What are Some Packaging and Shipping Tips for Mailing Parcels?",
+              "similarity": 0.548729419708256
+            },
+            {
+              "rank": 3,
+              "title": "Customs Forms - The Basics",
+              "similarity": 0.481694548231039
+            },
+            {
+              "rank": 4,
+              "title": "What is Open and Distribute Service?",
+              "similarity": 0.372101779595283
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Can I Ship Lithium Batteries?",
+              "similarity": 0.673989613414431
+            },
+            {
+              "rank": 2,
+              "title": "What are Some Packaging and Shipping Tips for Mailing Parcels?",
+              "similarity": 0.584081453559358
+            },
+            {
+              "rank": 3,
+              "title": "Click-N-Ship® - The Basics",
+              "similarity": 0.358613946520452
+            },
+            {
+              "rank": 4,
+              "title": "What do I Need to Know When Packaging Military Mail?",
+              "similarity": 0.355458964244756
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        }
+      }
+    },
+    {
+      "question": "How do I mail cremated remains?",
+      "expected": "Shipping Cremated Remains and Ashes",
+      "models": {
+        "minilm": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Shipping Cremated Remains and Ashes",
+              "similarity": 0.679246285051555
+            },
+            {
+              "rank": 2,
+              "title": "Burial Flags",
+              "similarity": 0.520412504673004
+            },
+            {
+              "rank": 3,
+              "title": "What Domestic Mail Extra Services are Available?",
+              "similarity": 0.509039759635925
+            },
+            {
+              "rank": 4,
+              "title": "What do I Need to Know When Packaging Military Mail?",
+              "similarity": 0.487459123134613
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        },
+        "multiqa": {
+          "results": [
+            {
+              "rank": 1,
+              "title": "Shipping Cremated Remains and Ashes",
+              "similarity": 0.662474969772994
+            },
+            {
+              "rank": 2,
+              "title": "Burial Flags",
+              "similarity": 0.533370673656464
+            },
+            {
+              "rank": 3,
+              "title": "What do I Need to Know When Packaging Military Mail?",
+              "similarity": 0.469545288966456
+            }
+          ],
+          "hit": true,
+          "rank": 1,
+          "mrr": 1.0
+        }
+      }
+    }
+  ]
+}
