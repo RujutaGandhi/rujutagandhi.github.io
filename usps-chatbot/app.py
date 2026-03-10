@@ -163,7 +163,7 @@ def chat(request: ChatRequest) -> ChatResponse:
 
 
 # ---------------------------------------------------------------------------
-# Entry point — Hugging Face Spaces uses port 7860
+# Entry point — Hugging Face Spaces uses port 10000 to match YAMNL
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=7860, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=10000, reload=False)
