@@ -6,20 +6,20 @@ agent.py
 USPS customer service agent using Claude with tool use.
 
 Tools:
-  - search_usps_knowledge: semantic search over usps_content_multiqa in Supabase,
-    using match_usps_multiqa RPC with match_threshold=0.5 and match_count=5,
+  - search_usps_knowledge: semantic search over usps_content_voyage in Supabase,
+    using match_usps_voyage RPC with match_threshold=0.5 and match_count=5,
     deduplicated by article title.
   - escalate_to_human: returns USPS contact options (phone, live chat, help page).
 
 Agent behavior:
-  - Embeds the user question with multi-qa-MiniLM-L6-cos-v1
+  - Embeds the user question with Voyage AI API (voyage-lite-02-instruct)
   - Forces search_usps_knowledge on the first turn
   - Answers ONLY from retrieved content — never from Claude's training data
   - Cites source URL and article title in every answer
   - Auto-escalates when no results are found above threshold
   - Runs as an interactive CLI loop
 
-Reads SUPABASE_URL, SUPABASE_ANON_KEY, and ANTHROPIC_API_KEY from .env
+Reads SUPABASE_URL, SUPABASE_ANON_KEY, ANTHROPIC_API_KEY, and VOYAGEAI_API_KEY from .env
 """
 
 import json
@@ -28,20 +28,20 @@ import sys
 from typing import Any, Dict, List
 
 import anthropic
+import voyageai
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 from supabase import create_client, Client
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-MATCH_THRESHOLD  = 0.5                        # production threshold
-MATCH_COUNT      = 5
-EMBEDDING_MODEL  = "multi-qa-MiniLM-L6-cos-v1"
-RPC_FUNCTION     = "match_usps_multiqa"
-CLAUDE_MODEL     = "claude-sonnet-4-20250514"
-MAX_TOKENS       = 512
-TEMPERATURE      = 0.1
+MATCH_THRESHOLD = 0.3
+MATCH_COUNT     = 5
+VOYAGE_MODEL    = "voyage-3"
+RPC_FUNCTION    = "match_usps_voyage"
+CLAUDE_MODEL    = "claude-sonnet-4-20250514"
+MAX_TOKENS      = 512
+TEMPERATURE     = 0.1
 
 # ---------------------------------------------------------------------------
 # System prompt
@@ -150,15 +150,20 @@ def deduplicate(results: List[dict], keep: int) -> List[dict]:
 # Tool implementations
 # ---------------------------------------------------------------------------
 def _search_usps_knowledge(
-    query: str, supabase: Client, embedder: SentenceTransformer
+    query: str, supabase: Client, vo: voyageai.Client
 ) -> str:
-    """Embed query, call Supabase RPC, deduplicate, return JSON string."""
-    embedding: List[float] = embedder.encode([query], show_progress_bar=False).tolist()[0]
+    """Embed query via Voyage API, call Supabase RPC, deduplicate, return JSON string."""
+    try:
+        result = vo.embed([query], model=VOYAGE_MODEL, input_type="query")
+        embedding: List[float] = result.embeddings[0]
+    except Exception as e:
+        return json.dumps({"found": False, "error": f"Embedding failed: {str(e)}", "results": []})
 
-    params: Dict[str, Any] = {}
-    params["query_embedding"] = embedding
-    params["match_threshold"]  = MATCH_THRESHOLD
-    params["match_count"]      = MATCH_COUNT
+    params: Dict[str, Any] = {
+        "query_embedding": embedding,
+        "match_threshold":  MATCH_THRESHOLD,
+        "match_count":      MATCH_COUNT,
+    }
 
     try:
         resp = supabase.rpc(RPC_FUNCTION, params).execute()
@@ -212,10 +217,10 @@ def execute_tool(
     name: str,
     tool_input: Dict[str, Any],
     supabase: Client,
-    embedder: SentenceTransformer,
+    vo: voyageai.Client,
 ) -> str:
     if name == "search_usps_knowledge":
-        return _search_usps_knowledge(tool_input["query"], supabase, embedder)
+        return _search_usps_knowledge(tool_input["query"], supabase, vo)
     if name == "escalate_to_human":
         return _escalate_to_human(tool_input.get("reason", ""))
     return json.dumps({"error": f"Unknown tool: {name}"})
@@ -228,13 +233,27 @@ def run_agent(
     question: str,
     client: anthropic.Anthropic,
     supabase: Client,
-    embedder: SentenceTransformer,
-) -> str:
-    """Run the agentic loop for a single user question and return the answer."""
+    vo: voyageai.Client,
+) -> Dict[str, Any]:
+    """Run the agentic loop for a single user question.
+
+    Returns a dict with keys:
+        answer           (str)
+        source_title     (str | None)
+        source_url       (str | None)
+        similarity_score (float | None)
+        escalated        (bool)
+    """
     messages: List[Dict[str, Any]] = [{"role": "user", "content": question}]
 
-    # First call: force search_usps_knowledge so the agent always retrieves
-    # before deciding whether to answer or escalate.
+    meta: Dict[str, Any] = {
+        "source_title":     None,
+        "source_url":       None,
+        "similarity_score": None,
+        "escalated":        False,
+    }
+
+    # First call: force search_usps_knowledge
     response = client.messages.create(
         model=CLAUDE_MODEL,
         max_tokens=MAX_TOKENS,
@@ -245,17 +264,28 @@ def run_agent(
         messages=messages,
     )
 
-    # Agentic loop — continue while Claude is calling tools
+    # Agentic loop
     while response.stop_reason == "tool_use":
         tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
-
-        # Append assistant turn (including tool_use blocks)
         messages.append({"role": "assistant", "content": response.content})
 
-        # Execute every requested tool and collect results
         tool_results = []
         for tool in tool_use_blocks:
-            result_content = execute_tool(tool.name, tool.input, supabase, embedder)
+            result_content = execute_tool(tool.name, tool.input, supabase, vo)
+
+            try:
+                result_data = json.loads(result_content)
+                if tool.name == "search_usps_knowledge":
+                    if result_data.get("found") and result_data.get("results"):
+                        top = result_data["results"][0]
+                        meta["source_title"]     = top.get("title")
+                        meta["source_url"]       = top.get("url")
+                        meta["similarity_score"] = top.get("similarity")
+                elif tool.name == "escalate_to_human":
+                    meta["escalated"] = True
+            except (json.JSONDecodeError, KeyError, TypeError):
+                pass
+
             tool_results.append({
                 "type":        "tool_result",
                 "tool_use_id": tool.id,
@@ -264,7 +294,6 @@ def run_agent(
 
         messages.append({"role": "user", "content": tool_results})
 
-        # Next turn — Claude now decides to answer or call another tool
         response = client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=MAX_TOKENS,
@@ -274,11 +303,11 @@ def run_agent(
             messages=messages,
         )
 
-    # Extract the final text response
-    return next(
+    answer = next(
         (b.text for b in response.content if b.type == "text"),
         "I'm sorry, I was unable to generate a response. Please contact USPS directly at 1-800-275-8777.",
     )
+    return {"answer": answer, **meta}
 
 
 # ---------------------------------------------------------------------------
@@ -287,9 +316,10 @@ def run_agent(
 def main() -> None:
     load_dotenv()
 
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_ANON_KEY")
+    supabase_url  = os.getenv("SUPABASE_URL")
+    supabase_key  = os.getenv("SUPABASE_ANON_KEY")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    voyage_key    = os.getenv("VOYAGEAI_API_KEY")
 
     if not supabase_url or not supabase_key:
         print("ERROR: SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env")
@@ -297,9 +327,12 @@ def main() -> None:
     if not anthropic_key:
         print("ERROR: ANTHROPIC_API_KEY must be set in .env")
         sys.exit(1)
+    if not voyage_key:
+        print("ERROR: VOYAGEAI_API_KEY must be set in .env")
+        sys.exit(1)
 
-    print("Loading embedding model...")
-    embedder = SentenceTransformer(EMBEDDING_MODEL)
+    print("Connecting to Voyage AI...")
+    vo = voyageai.Client(api_key=voyage_key)
     print("  Done.")
 
     print("Connecting to Supabase...")
@@ -328,8 +361,8 @@ def main() -> None:
             break
 
         print("\nAgent: ", end="", flush=True)
-        answer = run_agent(question, claude, supabase, embedder)
-        print(answer)
+        result = run_agent(question, claude, supabase, vo)
+        print(result["answer"])
 
 
 if __name__ == "__main__":

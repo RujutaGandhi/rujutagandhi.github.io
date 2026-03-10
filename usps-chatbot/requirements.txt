@@ -9,8 +9,7 @@ anthropic>=0.49.0
 supabase>=2.3.0
 
 # Embeddings
-sentence-transformers>=3.0.0
-torch>=2.0.0
+voyageai>=0.2.3
 
 # Utilities
 python-dotenv>=1.0.0

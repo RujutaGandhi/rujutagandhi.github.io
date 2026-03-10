@@ -1,30 +1,22 @@
 #!/usr/bin/env python3
-# Production threshold: 0.5 - chosen based on escalation test results showing 2/2 PASS only at 0.5
 """
 eval_llm_judge.py
 
 For each threshold (0.3, 0.4, 0.5) and each of the 10 golden questions:
   1. Reads the top retrieved article title from eval_results.json
-     (using the winning model: multi-qa-MiniLM-L6-cos-v1)
-  2. Looks up the article content in usps_cleaned.json and takes
-     the first 500-token chunk (matching embed_usps.py chunking logic)
+  2. Looks up the article content in usps_cleaned.json
   3. Calls Claude to generate an answer using ONLY that chunk as context
-  4. Calls Claude again as an LLM judge to score:
+  4. Calls Claude again as LLM judge to score:
        - Faithfulness (1-5), Answer Relevance (1-5), Overall (1-5)
 
-Also evaluates 2 escalation questions (expected: ESCALATE):
-  - If retrieval returned NO results above ESCALATION_THRESHOLD: auto-PASS
-  - If results were returned: generates an answer and judges whether the
-    bot correctly declined to answer / escalated
+Also evaluates 2 escalation questions:
+  - If retrieval returned NO results above threshold: auto-PASS
+  - If results were returned: generates answer and judges whether bot escalated
 
-Golden judge results are loaded from the existing eval_judge_results.json.
-Only the 2 escalation questions are newly evaluated.
-Saves combined results back to eval_judge_results.json.
+API calls are cached by (question, retrieved_title) to avoid duplicate calls
+across thresholds when the top result is the same.
 
-API calls are cached by (question, retrieved_title) so identical top results
-across thresholds do not trigger duplicate calls.
-
-Reads ANTHROPIC_API_KEY from .env
+Saves results to eval_judge_results.json.
 """
 
 import json
@@ -39,26 +31,50 @@ from dotenv import load_dotenv
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-MODEL                = "claude-sonnet-4-0"   # claude-sonnet-4-20250514
-RETRIEVAL_MODEL      = "multiqa"
+MODEL                = "claude-sonnet-4-20250514"
 CHUNK_TOKENS         = 500
 EVAL_INPUT           = "eval_results.json"
 CLEANED_INPUT        = "usps_cleaned.json"
-JUDGE_INPUT          = "eval_judge_results.json"
 OUTPUT_FILE          = "eval_judge_results.json"
-ESCALATION_THRESHOLD = 0.5  # production threshold
+ESCALATION_THRESHOLD = 0.5
+THRESHOLDS           = [0.3, 0.4, 0.5]
 
-ESCALATION_QUESTIONS = [
-    "What is the best smartphone to buy?",
-    "How do I fix my internet connection?",
-]
+SEP  = "─" * 72
+SEP2 = "═" * 72
 
-GENERATOR_SYSTEM = (
-    "You are a helpful USPS customer service assistant. "
-    "Answer the user's question using ONLY the information provided in the context. "
-    "If the context does not contain enough information to fully answer, say so clearly. "
-    "Be concise and direct."
-)
+# ---------------------------------------------------------------------------
+# Prompts
+# ---------------------------------------------------------------------------
+GENERATOR_SYSTEM = """\
+You are a friendly USPS customer service assistant. Your goal is to help \
+customers with their postal service questions quickly and clearly.
+
+GROUNDEDNESS RULE — CRITICAL:
+Answer ONLY using the retrieved context provided below. USPS policies, prices, \
+and procedures change frequently — never rely on your training data. If the \
+retrieved content does not contain the answer, do not guess.
+
+ESCALATION — if the context does not contain a confident answer:
+Politely tell the customer you cannot find the answer and provide these contact \
+options: call 1-800-275-8777 (Mon–Fri 8 AM–8:30 PM ET, Sat 8 AM–6 PM ET), \
+or visit usps.com/help/contact-us.htm
+
+CITATIONS:
+Every answer must include the source article title and URL if provided in the \
+context. Format: "Source: <title> — <url>"
+
+TONE:
+Calm, concise, and plain language. Users may be frustrated — be empathetic and \
+direct. Keep answers brief; avoid jargon.
+
+SCOPE:
+If the question is not related to USPS services, politely say it is outside \
+your scope and provide the contact options above.
+
+UNCERTAINTY:
+If you are only partially confident based on the retrieved content, clearly \
+state your uncertainty before providing the information.\
+"""
 
 JUDGE_SYSTEM = """You are an expert evaluator of RAG (Retrieval-Augmented Generation) systems.
 
@@ -99,15 +115,7 @@ Return ONLY valid JSON — no markdown, no text outside the JSON:
   "escalated_correctly": <true or false>,
   "confidence": <integer 1-5>,
   "reason": "<one sentence explaining the verdict>"
-}
-
-Scoring for confidence:
-  5 = bot clearly and politely declined / redirected
-  3 = bot partially declined but gave some off-topic content
-  1 = bot fully attempted to answer the out-of-scope question"""
-
-SEP  = "─" * 72
-SEP2 = "═" * 72
+}"""
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -156,21 +164,16 @@ def generate_answer(client: anthropic.Anthropic, question: str, context: str) ->
     return next((b.text for b in response.content if b.type == "text"), "")
 
 
-def judge_answer(
-    client: anthropic.Anthropic, question: str, context: str, answer: str
-) -> Dict:
+def judge_answer(client: anthropic.Anthropic, question: str, context: str, answer: str) -> dict:
     response = client.messages.create(
         model=MODEL,
         max_tokens=512,
         system=JUDGE_SYSTEM,
-        messages=[{
-            "role": "user",
-            "content": (
-                f"Question: {question}\n\n"
-                f"Retrieved Context:\n{context}\n\n"
-                f"Generated Answer:\n{answer}"
-            )
-        }]
+        messages=[{"role": "user", "content": (
+            f"Question: {question}\n\n"
+            f"Retrieved Context:\n{context}\n\n"
+            f"Generated Answer:\n{answer}"
+        )}]
     )
     raw = next((b.text for b in response.content if b.type == "text"), "{}")
     result = parse_json_response(raw)
@@ -183,17 +186,12 @@ def judge_answer(
     return result
 
 
-def judge_escalation(
-    client: anthropic.Anthropic, question: str, answer: str
-) -> Dict:
+def judge_escalation(client: anthropic.Anthropic, question: str, answer: str) -> dict:
     response = client.messages.create(
         model=MODEL,
         max_tokens=256,
         system=ESCALATION_JUDGE_SYSTEM,
-        messages=[{
-            "role": "user",
-            "content": f"Question: {question}\n\nChatbot Response:\n{answer}"
-        }]
+        messages=[{"role": "user", "content": f"Question: {question}\n\nChatbot Response:\n{answer}"}]
     )
     raw = next((b.text for b in response.content if b.type == "text"), "{}")
     result = parse_json_response(raw)
@@ -207,233 +205,209 @@ def judge_escalation(
 # ---------------------------------------------------------------------------
 def main():
     load_dotenv()
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
+
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    if not anthropic_key:
         print("ERROR: ANTHROPIC_API_KEY must be set in .env")
         sys.exit(1)
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=anthropic_key)
 
-    # Load retrieval results (must include escalation data from eval_retrieval.py)
+    # Load retrieval results
     print(f"Loading {EVAL_INPUT}...")
-    with open(EVAL_INPUT) as f:
-        eval_data = json.load(f)
-    thresholds_data  = eval_data.get("thresholds", {})
-    thresholds       = sorted(float(k) for k in thresholds_data)
-    print(f"  Found thresholds: {thresholds}\n")
-
-    # Load existing golden judge results (avoid re-running the 10 golden questions)
-    print(f"Loading existing golden judge results from {JUDGE_INPUT}...")
     try:
-        with open(JUDGE_INPUT) as f:
-            existing_judge = json.load(f)
-        existing_judge_thresholds = existing_judge.get("thresholds", {})
-        print(f"  Loaded judge results for thresholds: {list(existing_judge_thresholds.keys())}\n")
+        with open(EVAL_INPUT) as f:
+            eval_data = json.load(f)
     except FileNotFoundError:
-        print("  WARNING: eval_judge_results.json not found — golden judge scores will show as n/a.\n")
-        existing_judge_thresholds = {}
+        print(f"ERROR: {EVAL_INPUT} not found — run eval_retrieval.py first.")
+        sys.exit(1)
 
+    thresholds_data = eval_data.get("thresholds", {})
+
+    # Load article content
     print(f"Loading {CLEANED_INPUT}...")
     article_index = build_article_index(CLEANED_INPUT)
     print(f"  {len(article_index)} articles indexed.\n")
 
-    # Cache: (question, top_title) → (answer, scores)
-    answer_cache: Dict[Tuple[str, str], Tuple[str, Dict]] = {}
+    answer_cache: Dict[Tuple, Tuple] = {}
     api_calls_saved = 0
+    judge_by_threshold: Dict[str, dict] = {}
 
-    # Escalation results keyed by threshold
-    esc_judge_by_threshold: Dict[str, List[dict]] = {}
+    for threshold in THRESHOLDS:
+        t_key    = str(threshold)
+        t_data   = thresholds_data.get(t_key, {})
+        questions = t_data.get("questions", [])
+        esc_list  = t_data.get("escalation", [])
 
-    print(SEP2)
-    print(f"{'ESCALATION JUDGE EVALUATION  (model: ' + MODEL + ')':^72}")
-    print(SEP2)
-
-    for threshold in thresholds:
-        t_key     = str(threshold)
-        esc_list  = thresholds_data.get(t_key, {}).get("escalation", [])
-
-        if not esc_list:
-            print(f"\n[SKIP] No escalation data in eval_results.json for threshold {threshold}.")
-            print("       Run eval_retrieval.py first to generate escalation results.\n")
-            continue
-
-        print(f"\n{SEP2}")
+        print(SEP2)
         print(f"  THRESHOLD: {threshold}")
         print(SEP2)
 
-        threshold_esc_results: List[dict] = []
+        # --- Golden questions ---
+        faith_scores  = []
+        relev_scores  = []
+        overall_scores = []
+        question_judge_results = []
 
-        for i, esc_data in enumerate(esc_list, 1):
-            question    = esc_data["question"]
-            retrieval_passed = esc_data["passed"]  # True = no results above ESCALATION_THRESHOLD
-            model_res   = esc_data.get("models", {}).get(RETRIEVAL_MODEL, {})
-            results_list = model_res.get("results", [])
-            max_sim      = model_res.get("max_similarity", 0.0)
+        for i, q_data in enumerate(questions, 1):
+            question    = q_data["question"]
+            top_results = q_data.get("top_results", [])
+            top_title   = top_results[0]["title"] if top_results else ""
 
-            print(f"\n  ESC{i}: {question}")
-            print(f"  Retrieval PASS: {retrieval_passed}  (max sim={max_sim:.3f})")
-            print(SEP)
+            content = find_content(article_index, top_title) if top_title else None
+            context = first_chunk(content) if content else "(No relevant content found)"
+
+            cache_key = (question, top_title)
+            cache_hit = cache_key in answer_cache
+
+            print(f"\n  Q{i}: {question}")
+            print(f"  Top: {top_title[:50] or '—'}" + ("  [cached]" if cache_hit else ""))
+
+            if cache_hit:
+                answer, scores = answer_cache[cache_key]
+                api_calls_saved += 2
+            else:
+                try:
+                    answer = generate_answer(client, question, context)
+                    time.sleep(0.5)
+                    scores = judge_answer(client, question, context, answer)
+                    time.sleep(0.5)
+                    answer_cache[cache_key] = (answer, scores)
+                except Exception as e:
+                    print(f"  [ERROR] {e}")
+                    answer = ""
+                    scores = {
+                        "faithfulness":     {"score": 0, "reason": str(e)},
+                        "answer_relevance": {"score": 0, "reason": str(e)},
+                        "overall":          {"score": 0, "reason": str(e)},
+                    }
+
+            f = scores.get("faithfulness",     {}).get("score", 0)
+            r = scores.get("answer_relevance", {}).get("score", 0)
+            o = scores.get("overall",          {}).get("score", 0)
+
+            faith_scores.append(f)
+            relev_scores.append(r)
+            overall_scores.append(o)
+
+            print(f"  Scores → Faithfulness: {f}/5  Relevance: {r}/5  Overall: {o}/5")
+            question_judge_results.append({
+                "question":      question,
+                "top_title":     top_title,
+                "answer":        answer,
+                "scores":        scores,
+                "cache_hit":     cache_hit,
+            })
+
+        avg_faith  = sum(faith_scores)  / len(faith_scores)  if faith_scores  else 0
+        avg_relev  = sum(relev_scores)  / len(relev_scores)  if relev_scores  else 0
+        avg_overall = sum(overall_scores) / len(overall_scores) if overall_scores else 0
+
+        print(f"\n  Averages → Faithfulness: {avg_faith:.2f}  Relevance: {avg_relev:.2f}  Overall: {avg_overall:.2f}")
+
+        # --- Escalation ---
+        print(f"\n  ── Escalation Tests ──")
+        esc_judge_results = []
+
+        for j, esc_data in enumerate(esc_list, 1):
+            question        = esc_data["question"]
+            retrieval_passed = esc_data["passed"]
+            max_sim         = esc_data.get("max_similarity", 0.0)
+
+            print(f"\n  ESC{j}: {question}")
+            print(f"  Retrieval PASS: {retrieval_passed}  (max_sim={max_sim:.3f})")
 
             if retrieval_passed:
-                # No results above threshold — bot would correctly not attempt an answer
-                print("  [AUTO-PASS] No results above escalation threshold — bot would decline.")
+                print("  [AUTO-PASS] No results above threshold — bot would correctly decline.")
                 verdict = {
                     "escalated_correctly": True,
-                    "confidence":          5,
-                    "reason":              "No results returned above threshold; bot would correctly decline.",
-                    "auto_pass":           True,
+                    "confidence": 5,
+                    "reason": "No results returned above threshold; bot would correctly decline.",
+                    "auto_pass": True,
                 }
-                threshold_esc_results.append({
-                    "question":          question,
-                    "expected":          "ESCALATE",
-                    "retrieval_passed":  True,
-                    "max_similarity":    max_sim,
-                    "answer":            None,
+                esc_judge_results.append({
+                    "question": question, "retrieval_passed": True,
+                    "max_similarity": max_sim, "answer": None,
                     "escalation_verdict": verdict,
-                    "cache_hit":         False,
                 })
             else:
-                # Results were returned — generate an answer and judge if it escalates correctly
-                top_title = results_list[0].get("title", "") if results_list else ""
-                article_content = find_content(article_index, top_title) if top_title else None
-
-                if not article_content:
-                    # No article content to use — use empty context
-                    context = "(No relevant USPS content found)"
-                else:
-                    context = first_chunk(article_content, CHUNK_TOKENS)
+                top_results = esc_data.get("results", [])
+                top_title   = top_results[0]["title"] if top_results else ""
+                content     = find_content(article_index, top_title) if top_title else None
+                context     = first_chunk(content) if content else "(No relevant content found)"
 
                 cache_key = (question, top_title)
                 cache_hit = cache_key in answer_cache
 
-                print(f"  Top result : {top_title or '—'} (sim={max_sim:.3f})"
-                      + ("  [cached]" if cache_hit else ""))
-
                 if cache_hit:
-                    answer, _ = answer_cache[cache_key]
-                    api_calls_saved += 1
+                    answer, verdict = answer_cache[cache_key]
+                    api_calls_saved += 2
                 else:
                     try:
                         answer = generate_answer(client, question, context)
+                        time.sleep(0.5)
+                        verdict = judge_escalation(client, question, answer)
+                        time.sleep(0.5)
+                        answer_cache[cache_key] = (answer, verdict)
                     except Exception as e:
-                        print(f"  [ERROR] Generation failed: {e}")
-                        answer = ""
-                    time.sleep(0.5)
+                        answer  = ""
+                        verdict = {"escalated_correctly": False, "confidence": 0, "reason": str(e)}
 
-                print(f"  Answer     : {answer[:200]}{'...' if len(answer) > 200 else ''}")
-
-                # Judge whether the bot escalated correctly
-                try:
-                    verdict = judge_escalation(client, question, answer)
-                except Exception as e:
-                    print(f"  [ERROR] Escalation judge failed: {e}")
-                    verdict = {"escalated_correctly": False, "confidence": 0, "reason": str(e)}
-
-                if not cache_hit:
-                    answer_cache[cache_key] = (answer, verdict)
-                    time.sleep(0.5)
-                else:
-                    api_calls_saved += 1
-
-                correctly = verdict.get("escalated_correctly", False)
-                conf      = verdict.get("confidence", 0)
-                reason    = verdict.get("reason", "")
-                label     = "PASS ✓" if correctly else "FAIL ✗"
-                print(f"  Verdict    : {label}  (confidence={conf}/5) — {reason}")
-
-                threshold_esc_results.append({
-                    "question":           question,
-                    "expected":           "ESCALATE",
-                    "retrieval_passed":   False,
-                    "max_similarity":     max_sim,
-                    "context_used":       context,
-                    "answer":             answer,
+                label = "PASS ✓" if verdict.get("escalated_correctly") else "FAIL ✗"
+                print(f"  Verdict: {label}  (confidence={verdict.get('confidence', 0)}/5)")
+                esc_judge_results.append({
+                    "question": question, "retrieval_passed": False,
+                    "max_similarity": max_sim, "answer": answer,
                     "escalation_verdict": verdict,
-                    "cache_hit":          cache_hit,
                 })
 
-        passes = sum(1 for r in threshold_esc_results
-                     if r["escalation_verdict"].get("escalated_correctly", False))
-        print(f"\n  Escalation pass rate @ {threshold}: {passes}/{len(threshold_esc_results)}")
-        esc_judge_by_threshold[t_key] = threshold_esc_results
+        esc_passes = sum(1 for r in esc_judge_results
+                         if r["escalation_verdict"].get("escalated_correctly", False))
+        print(f"\n  Escalation pass rate: {esc_passes}/{len(esc_judge_results)}")
 
-    # ---------------------------------------------------------------------------
-    # Combined comparison scorecard
-    # ---------------------------------------------------------------------------
+        judge_by_threshold[t_key] = {
+            "avg_faithfulness":     avg_faith,
+            "avg_answer_relevance": avg_relev,
+            "avg_overall":          avg_overall,
+            "questions":            question_judge_results,
+            "escalation": {
+                "pass_rate": esc_passes / len(esc_judge_results) if esc_judge_results else None,
+                "n":         len(esc_judge_results),
+                "results":   esc_judge_results,
+            },
+        }
+
+    # --- Scorecard ---
     print(f"\n\n{SEP2}")
-    print(f"{'COMPARISON SCORECARD — ALL THRESHOLDS':^72}")
+    print(f"{'SCORECARD — voyage-3-lite LLM Judge':^72}")
     print(SEP2)
+    print(f"\n  {'Threshold':>10}  {'Faithful':>9}  {'Relevance':>10}  {'Overall':>8}  {'Escalation':>12}")
+    print(f"  {'-'*10}  {'-'*9}  {'-'*10}  {'-'*8}  {'-'*12}")
 
-    print(f"\n  ── Golden Questions (10) — Retrieval + LLM Judge (multi-qa) ──")
-    print(f"  {'Threshold':>9}  {'HR@5':>6}  {'MRR':>6}  {'Faithful':>9}  {'Relevance':>10}  {'Overall':>8}")
-    print(f"  {'-'*9}  {'-'*6}  {'-'*6}  {'-'*9}  {'-'*10}  {'-'*8}")
-
-    for threshold in thresholds:
-        t_key  = str(threshold)
-        # Retrieval metrics from eval_results.json
-        ret    = thresholds_data.get(t_key, {}).get("summary", {}).get(RETRIEVAL_MODEL, {})
-        hr     = f"{ret['hit_rate_at_5']:.1%}" if "hit_rate_at_5" in ret else "  n/a"
-        mrr    = f"{ret['mrr']:.3f}"           if "mrr" in ret           else "  n/a"
-        # LLM judge metrics from existing eval_judge_results.json
-        jt     = existing_judge_thresholds.get(t_key, {})
-        faith  = f"{jt['avg_faithfulness']:.2f}"     if "avg_faithfulness"     in jt else "  n/a"
-        relev  = f"{jt['avg_answer_relevance']:.2f}" if "avg_answer_relevance" in jt else "  n/a"
-        ovall  = f"{jt['avg_overall']:.2f}"          if "avg_overall"          in jt else "  n/a"
-        print(f"  {threshold:>9.1f}  {hr:>6}  {mrr:>6}  {faith:>9}  {relev:>10}  {ovall:>8}")
-
-    print(f"\n  ── Escalation Tests (2 questions, PASS = correctly declined) ──")
-    print(f"  {'Threshold':>9}  {'Retrieval':>10}  {'LLM Escalation':>15}")
-    print(f"  {'-'*9}  {'-'*10}  {'-'*15}")
-
-    for threshold in thresholds:
-        t_key    = str(threshold)
-        esc_list = esc_judge_by_threshold.get(t_key, [])
-        if not esc_list:
-            print(f"  {threshold:>9.1f}  {'n/a':>10}  {'n/a':>15}")
-            continue
-        # Retrieval pass = no results above escalation threshold
-        ret_esc  = thresholds_data.get(t_key, {}).get("escalation", [])
-        ret_pass = sum(1 for r in ret_esc if r.get("passed", False))
-        # LLM judge pass = correctly escalated
-        llm_pass = sum(1 for r in esc_list
-                       if r["escalation_verdict"].get("escalated_correctly", False))
-        n = len(esc_list)
-        print(f"  {threshold:>9.1f}  {ret_pass}/{n} {'PASS' if ret_pass == n else 'FAIL':>6}  "
-              f"  {llm_pass}/{n} {'PASS' if llm_pass == n else 'FAIL':>6}")
+    for threshold in THRESHOLDS:
+        t  = judge_by_threshold[str(threshold)]
+        ep = t["escalation"]["pass_rate"]
+        en = t["escalation"]["n"]
+        esc_str = f"{int(ep*en)}/{en} {'PASS' if ep == 1.0 else 'FAIL'}"
+        print(f"  {threshold:>10.1f}  {t['avg_faithfulness']:>9.2f}  "
+              f"{t['avg_answer_relevance']:>10.2f}  {t['avg_overall']:>8.2f}  {esc_str:>12}")
 
     if api_calls_saved:
         print(f"\n  ({api_calls_saved} API calls saved via cache)")
     print()
 
-    # ---------------------------------------------------------------------------
-    # Save — merge escalation judge results into existing data
-    # ---------------------------------------------------------------------------
-    for threshold in thresholds:
-        t_key = str(threshold)
-        if t_key not in existing_judge_thresholds:
-            existing_judge_thresholds[t_key] = {}
-        t_data = existing_judge_thresholds[t_key]
-
-        esc_results = esc_judge_by_threshold.get(t_key, [])
-        passes      = sum(1 for r in esc_results
-                          if r["escalation_verdict"].get("escalated_correctly", False))
-        t_data["escalation"] = {
-            "pass_rate":  passes / len(esc_results) if esc_results else None,
-            "n":          len(esc_results),
-            "results":    esc_results,
-        }
-
+    # --- Save ---
     output = {
         "evaluated_at":    time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "generator_model": MODEL,
         "judge_model":     MODEL,
-        "retrieval_model": "multi-qa-MiniLM-L6-cos-v1",
+        "embedding_model": "voyage-3-lite",
         "chunk_tokens":    CHUNK_TOKENS,
-        "thresholds":      existing_judge_thresholds,
+        "thresholds":      judge_by_threshold,
     }
     with open(OUTPUT_FILE, "w") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"  Full results saved to {OUTPUT_FILE}")
+    print(f"  Results saved to {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":
