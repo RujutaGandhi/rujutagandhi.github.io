@@ -2,16 +2,16 @@
 """
 app.py
 
-FastAPI wrapper around agent.py for deployment on Hugging Face Spaces.
+FastAPI wrapper around agent.py for deployment on Render.
 
 Endpoints:
   POST /chat   — accepts {"question": str}, returns structured agent response
-  GET  /health — returns {"status": "ok"} for HF health checks
+  GET  /health — returns {"status": "ok"} for health checks / keep-alive pings
 
-Clients (Supabase, Anthropic, SentenceTransformer) are initialised once at
+Clients (Supabase, Anthropic, Voyage AI) are initialised once at
 startup and reused across requests.
 
-Reads SUPABASE_URL, SUPABASE_ANON_KEY, and ANTHROPIC_API_KEY from .env
+Reads SUPABASE_URL, SUPABASE_ANON_KEY, ANTHROPIC_API_KEY, and VOYAGEAI_API_KEY from .env
 """
 
 import os
@@ -21,14 +21,14 @@ from typing import Optional
 
 import anthropic
 import uvicorn
+import voyageai
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sentence_transformers import SentenceTransformer
 from supabase import create_client, Client
 
-from agent import run_agent, EMBEDDING_MODEL, CLAUDE_MODEL, MATCH_THRESHOLD
+from agent import run_agent, VOYAGE_MODEL, CLAUDE_MODEL, MATCH_THRESHOLD
 
 # ---------------------------------------------------------------------------
 # Request / response models
@@ -53,7 +53,7 @@ class HealthResponse(BaseModel):
 # Application state — populated at startup
 # ---------------------------------------------------------------------------
 class AppState:
-    embedder: SentenceTransformer
+    vo:       voyageai.Client
     supabase: Client
     claude:   anthropic.Anthropic
 
@@ -62,21 +62,23 @@ state = AppState()
 
 
 # ---------------------------------------------------------------------------
-# Lifespan — load heavy resources once at startup
+# Lifespan — initialise clients once at startup
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_dotenv()
 
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_ANON_KEY")
+    supabase_url  = os.getenv("SUPABASE_URL")
+    supabase_key  = os.getenv("SUPABASE_ANON_KEY")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    voyage_key    = os.getenv("VOYAGEAI_API_KEY")
 
     missing = [
         name for name, val in [
             ("SUPABASE_URL",      supabase_url),
             ("SUPABASE_ANON_KEY", supabase_key),
             ("ANTHROPIC_API_KEY", anthropic_key),
+            ("VOYAGEAI_API_KEY",  voyage_key),
         ]
         if not val
     ]
@@ -84,8 +86,8 @@ async def lifespan(app: FastAPI):
         print(f"ERROR: missing environment variables: {', '.join(missing)}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Loading embedding model ({EMBEDDING_MODEL})...")
-    state.embedder = SentenceTransformer(EMBEDDING_MODEL)
+    print(f"Connecting to Voyage AI ({VOYAGE_MODEL})...")
+    state.vo = voyageai.Client(api_key=voyage_key)
     print("  Done.")
 
     print("Connecting to Supabase...")
@@ -96,7 +98,6 @@ async def lifespan(app: FastAPI):
 
     print(f"USPS agent ready  |  model: {CLAUDE_MODEL}  |  threshold: {MATCH_THRESHOLD}")
     yield
-    # Nothing to clean up on shutdown
 
 
 # ---------------------------------------------------------------------------
@@ -111,7 +112,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # GitHub Pages frontend may be on any domain
+    allow_origins=["*"],
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
@@ -122,7 +123,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 @app.get("/health", response_model=HealthResponse, tags=["meta"])
 def health() -> HealthResponse:
-    """Health check for Hugging Face Spaces."""
+    """Health check / keep-alive ping."""
     return HealthResponse(status="ok")
 
 
@@ -140,7 +141,7 @@ def chat(request: ChatRequest) -> ChatResponse:
             question=request.question,
             client=state.claude,
             supabase=state.supabase,
-            embedder=state.embedder,
+            vo=state.vo,
         )
     except anthropic.AuthenticationError:
         raise HTTPException(status_code=500, detail="Claude API authentication failed.")
@@ -163,7 +164,7 @@ def chat(request: ChatRequest) -> ChatResponse:
 
 
 # ---------------------------------------------------------------------------
-# Entry point — Hugging Face Spaces uses port 10000 to match YAMNL
+# Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=10000, reload=False)
