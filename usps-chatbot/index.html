@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USPS Virtual Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --usps-blue: #004B87;
+    --usps-blue-dark: #003561;
+    --usps-blue-light: #E8F0F8;
+    --usps-red: #DA291C;
+    --bg: #F4F6F9;
+    --white: #FFFFFF;
+    --ink: #1A1A2E;
+    --mid: #5A6070;
+    --border: #DDE2EA;
+    --border-strong: #C4CBDA;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh; /* mobile browser chrome aware */
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--usps-blue);
+    color: white;
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(0,75,135,0.25);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  /* USPS Eagle Logo (SVG inline) */
+  .usps-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .usps-eagle {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .usps-wordmark {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+
+  .usps-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: white;
+    text-transform: uppercase;
+  }
+
+  .usps-sub {
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 28px;
+    background: rgba(255,255,255,0.2);
+  }
+
+  .header-title {
+    font-size: 0.88rem;
+    font-weight: 400;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.01em;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .back-link {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.2s;
+  }
+  .back-link:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+  }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.7);
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4ADE80;
+    box-shadow: 0 0 6px rgba(74,222,128,0.6);
+    animation: glow 2s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ── BODY ── */
+  .chat-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── MESSAGES ── */
+  .messages-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 0;
+    display: flex;
+    flex-direction: column;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .messages-inner {
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    flex: 1;
+  }
+
+  /* ── WELCOME ── */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 20px 36px;
+    animation: fadeUp 0.5s ease;
+  }
+
+  .welcome-icon {
+    width: 64px; height: 64px;
+    background: var(--usps-blue-light);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+  }
+
+  .welcome-title {
+    font-family: 'Source Serif 4', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .welcome-sub {
+    font-size: 0.88rem;
+    color: var(--mid);
+    line-height: 1.65;
+    max-width: 420px;
+    margin-bottom: 28px;
+  }
+
+  .starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 560px;
+  }
+
+  .starter-chip {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-size: 0.82rem;
+    color: var(--usps-blue);
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-weight: 500;
+  }
+  .starter-chip:hover {
+    background: var(--usps-blue-light);
+    border-color: var(--usps-blue);
+  }
+
+  /* ── MESSAGE ROWS ── */
+  .msg-row {
+    display: flex;
+    gap: 12px;
+    animation: fadeUp 0.25s ease;
+  }
+  .msg-row.user { flex-direction: row-reverse; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+    font-size: 0.85rem; font-weight: 600;
+  }
+  .avatar.bot {
+    background: var(--usps-blue);
+    color: white;
+    font-size: 1.05rem;
+  }
+  .avatar.user {
+    background: var(--border);
+    color: var(--mid);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .bubble-col {
+    display: flex; flex-direction: column; gap: 6px;
+    max-width: 82%;
+  }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 0.88rem;
+    line-height: 1.7;
+  }
+
+  .bubble.user {
+    background: var(--usps-blue);
+    color: white;
+    border-radius: 16px 4px 16px 16px;
+    align-self: flex-end;
+  }
+
+  .bubble.bot {
+    background: var(--white);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 4px 16px 16px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+
+  .bubble.escalate {
+    background: #FFF8F0;
+    border-color: #FDDCB5;
+    color: #92400E;
+  }
+
+  /* ── SOURCE CITATION ── */
+  .source-cite {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.74rem;
+    color: var(--usps-blue);
+    background: var(--usps-blue-light);
+    border-radius: 8px;
+    padding: 5px 11px;
+    text-decoration: none;
+    width: fit-content;
+    transition: background 0.15s;
+    font-weight: 500;
+  }
+  .source-cite:hover { background: #d0dff0; }
+  .source-cite svg { width: 10px; height: 10px; flex-shrink: 0; }
+
+  /* ── TYPING ── */
+  .typing-row {
+    display: flex; gap: 12px;
+    animation: fadeUp 0.25s ease;
+  }
+  .typing-bubble {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 4px 16px 16px 16px;
+    padding: 14px 18px;
+    display: flex; gap: 5px; align-items: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .typing-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--border-strong);
+    animation: typingPulse 1.3s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.18s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes typingPulse {
+    0%, 60%, 100% { transform: scale(1); background: var(--border-strong); }
+    30% { transform: scale(1.4); background: var(--usps-blue); }
+  }
+
+  /* ── INPUT AREA ── */
+  .input-area {
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding: 16px 28px 20px;
+    flex-shrink: 0;
+  }
+
+  .input-inner {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .input-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 10px 10px 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-box:focus-within {
+    border-color: var(--usps-blue);
+    box-shadow: 0 0 0 3px rgba(0,75,135,0.08);
+  }
+
+  #chat-input {
+    flex: 1;
+    border: none; outline: none; background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; color: var(--ink);
+    resize: none; line-height: 1.5;
+    min-height: 24px; max-height: 120px;
+  }
+  #chat-input::placeholder { color: var(--border-strong); }
+
+  .send-btn {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--usps-blue);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: white; flex-shrink: 0;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .send-btn:hover:not(:disabled) { background: var(--usps-blue-dark); }
+  .send-btn:active:not(:disabled) { transform: scale(0.95); }
+  .send-btn:disabled { background: var(--border); cursor: not-allowed; }
+  .send-btn svg { width: 15px; height: 15px; }
+
+  .input-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding: 0 2px;
+  }
+
+  .disclaimer {
+    font-size: 0.68rem;
+    color: var(--mid);
+    opacity: 0.7;
+  }
+
+  .portfolio-link {
+    font-size: 0.68rem;
+    color: var(--mid);
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+  }
+  .portfolio-link:hover { opacity: 1; color: var(--usps-blue); }
+
+  /* ── RED ACCENT BAR ── */
+  .red-bar {
+    height: 4px;
+    background: var(--usps-red);
+    flex-shrink: 0;
+  }
+
+  /* ── TEXTAREA VERTICAL CENTERING ── */
+  .input-box {
+    align-items: center;
+  }
+  #chat-input {
+    padding-top: 2px;
+  }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 600px) {
+    /* Header: hide subtitle and divider, shrink padding */
+    header {
+      padding: 0 16px;
+      height: 56px;
+    }
+    .usps-sub { display: none; }
+    .header-divider { display: none; }
+    .header-title { display: none; }
+    .usps-eagle { width: 36px; height: 36px; }
+    .usps-name { font-size: 1rem; }
+    .back-link span { display: none; } /* Hide "Portfolio" text, keep icon */
+    .back-link { padding: 5px 8px; }
+    .status-dot { display: none; }
+
+    /* Messages */
+    .messages-wrap { padding: 16px 0; }
+    .messages-inner { padding: 0 14px; gap: 14px; }
+
+    /* Welcome screen */
+    .welcome { padding: 28px 12px 24px; }
+    .welcome-icon { width: 52px; height: 52px; font-size: 1.4rem; margin-bottom: 14px; }
+    .welcome-title { font-size: 1.2rem; }
+    .welcome-sub { font-size: 0.83rem; margin-bottom: 20px; }
+
+    /* Starters: full-width stack on mobile */
+    .starters {
+      flex-direction: column;
+      width: 100%;
+      max-width: 340px;
+    }
+    .starter-chip {
+      width: 100%;
+      text-align: left;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+    }
+
+    /* Bubbles: slightly wider on small screens */
+    .bubble-col { max-width: 90%; }
+    .bubble { font-size: 0.85rem; }
+
+    /* Avatars: smaller on mobile */
+    .avatar { width: 28px; height: 28px; font-size: 0.7rem; }
+    .avatar.bot { font-size: 0.9rem; }
+
+    /* Input area */
+    .input-area { padding: 12px 14px 16px; }
+    .input-box { padding: 8px 8px 8px 14px; }
+    #chat-input { font-size: 0.88rem; }
+    .send-btn { width: 36px; height: 36px; }
+
+    /* Footer: stack on mobile */
+    .input-footer {
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      text-align: center;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .usps-name { font-size: 0.9rem; }
+    .bubble { font-size: 0.82rem; padding: 10px 13px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Red accent bar (USPS brand) -->
+<div class="red-bar"></div>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="header-left">
+    <div class="usps-logo">
+      <!-- USPS Eagle SVG (simplified, public domain government mark) -->
+      <svg class="usps-eagle" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="38" fill="white" fill-opacity="0.12"/>
+        <!-- Eagle body -->
+        <ellipse cx="40" cy="44" rx="14" ry="16" fill="white"/>
+        <!-- Eagle head -->
+        <circle cx="40" cy="26" r="9" fill="white"/>
+        <!-- Beak -->
+        <polygon points="49,26 54,29 49,30" fill="#DA291C"/>
+        <!-- Eye -->
+        <circle cx="44" cy="24" r="1.5" fill="#004B87"/>
+        <!-- Left wing -->
+        <path d="M26 40 C14 32 8 22 12 14 C20 20 26 30 26 40Z" fill="white"/>
+        <!-- Right wing -->
+        <path d="M54 40 C66 32 72 22 68 14 C60 20 54 30 54 40Z" fill="white"/>
+        <!-- Tail feathers -->
+        <path d="M32 58 C30 64 28 70 30 74 L40 68 L50 74 C52 70 50 64 48 58Z" fill="white"/>
+        <!-- Talons -->
+        <path d="M34 60 L28 66 M34 60 L30 68 M46 60 L52 66 M46 60 L50 68" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- Shield on chest -->
+        <rect x="34" y="40" width="12" height="14" rx="1" fill="#DA291C"/>
+        <rect x="34" y="40" width="12" height="5" fill="#004B87"/>
+        <line x1="37" y1="40" x2="37" y2="54" stroke="white" stroke-width="1"/>
+        <line x1="40" y1="40" x2="40" y2="54" stroke="white" stroke-width="1"/>
+        <line x1="43" y1="40" x2="43" y2="54" stroke="white" stroke-width="1"/>
+      </svg>
+
+      <div class="usps-wordmark">
+        <span class="usps-name">USPS</span>
+        <span class="usps-sub">United States Postal Service</span>
+      </div>
+    </div>
+
+    <div class="header-divider"></div>
+    <span class="header-title">Virtual Assistant</span>
+  </div>
+
+  <div class="header-right">
+    <div class="status-dot">
+      <div class="dot"></div>
+      Online
+    </div>
+    <a class="back-link" href="../index.html">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Portfolio
+    </a>
+  </div>
+</header>
+
+<!-- ── CHAT BODY ── -->
+<div class="chat-body">
+  <div class="messages-wrap" id="messages-wrap">
+    <div class="messages-inner" id="messages">
+
+      <!-- Welcome state -->
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">📬</div>
+        <h2 class="welcome-title">How can we help you today?</h2>
+        <p class="welcome-sub">Get instant answers about tracking, shipping, mail services, and more — powered by real USPS FAQ content.</p>
+        <div class="starters">
+          <button class="starter-chip" onclick="sendStarter(this)">How do I track my package?</button>
+          <button class="starter-chip" onclick="sendStarter(this)">My package is missing — what do I do?</button>
+          <button class="starter-chip" onclick="sendStarter(this)">How do I hold my mail while on vacation?</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── INPUT ── -->
+<div class="input-area">
+  <div class="input-inner">
+    <div class="input-box">
+      <textarea
+        id="chat-input"
+        placeholder="Ask a question about USPS services…"
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <div class="input-footer">
+      <span class="disclaimer">Not affiliated with or endorsed by the United States Postal Service</span>
+      <a class="portfolio-link" href="../index.html">Built by Rujuta Gandhi →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ╔════════════════════════════════════════════╗
+  // ║  CONFIG — update after Render deploys      ║
+  // ╚════════════════════════════════════════════╝
+  const BACKEND_URL = 'https://usps-chatbot.onrender.com';
+
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  let isLoading = false;
+  let welcomed = true;
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function sendStarter(btn) {
+    inputEl.value = btn.textContent.trim();
+    sendMessage();
+  }
+
+  function hideWelcome() {
+    const w = document.getElementById('welcome');
+    if (w) w.remove();
+  }
+
+  function appendUser(text) {
+    hideWelcome();
+    const row = document.createElement('div');
+    row.className = 'msg-row user';
+    row.innerHTML = `
+      <div class="avatar user">YOU</div>
+      <div class="bubble-col">
+        <div class="bubble user">${escHtml(text)}</div>
+      </div>`;
+    messagesEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function showTyping() {
+    const row = document.createElement('div');
+    row.className = 'typing-row';
+    row.id = 'typing';
+    row.innerHTML = `
+      <div class="avatar bot">📬</div>
+      <div class="typing-bubble">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>`;
+    messagesEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
+  }
+
+  function appendBot(answer, meta) {
+    const row = document.createElement('div');
+    row.className = 'msg-row bot';
+
+    const isEscalate = meta?.escalated;
+    const bubbleClass = isEscalate ? 'bubble bot escalate' : 'bubble bot';
+
+    let extras = '';
+    if (meta?.source_title && meta?.source_url && !isEscalate) {
+      extras = `<a class="source-cite" href="${meta.source_url}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        ${escHtml(meta.source_title)}
+      </a>`;
+    }
+
+    row.innerHTML = `
+      <div class="avatar bot">📬</div>
+      <div class="bubble-col">
+        <div class="${bubbleClass}">${escHtml(answer)}</div>
+        ${extras}
+      </div>`;
+
+    messagesEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function scrollBottom() {
+    const wrap = document.getElementById('messages-wrap');
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function escHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function sendMessage() {
+    const question = inputEl.value.trim();
+    if (!question || isLoading) return;
+
+    isLoading = true;
+    sendBtn.disabled = true;
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+
+    appendUser(question);
+    showTyping();
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+
+      removeTyping();
+
+      if (!res.ok) {
+        appendBot(`Sorry, something went wrong (${res.status}). Please try again in a moment.`, null);
+      } else {
+        const data = await res.json();
+        appendBot(data.answer, {
+          source_title: data.source_title,
+          source_url: data.source_url,
+          escalated: data.escalated
+        });
+      }
+    } catch (err) {
+      removeTyping();
+      appendBot('The service is temporarily unavailable. If this is your first message today, the server may be starting up — please wait 30 seconds and try again.', { escalated: true });
+    }
+
+    isLoading = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+</script>
+
+</body>
+</html>
