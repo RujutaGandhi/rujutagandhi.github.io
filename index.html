@@ -574,7 +574,20 @@
     <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-text">Interactive Demos</div></div>
     <h2 class="section-heading">AI Demos</h2>
     <div class="demos-grid">
-      <div class="demo-card" onclick="openModal('decision-maker')">
+      <div class="demo-card" onclick="openModal('usps-chatbot')" style="cursor:pointer;">
+      <div class="demo-icon">📬</div>
+      <h3>USPS Chatbot V1</h3>
+      <p>RAG-powered conversational AI agent that answers USPS customer service questions from real FAQ content — and escalates when it can't help.</p>
+      <div class="demo-tech">
+        <span>Claude claude-sonnet-4</span>
+        <span>Firecrawl</span>
+        <span>Supabase pgvector</span>
+        <span>FastAPI</span>
+        <span>Python</span>
+      </div>
+      <span class="demo-link" style="cursor:pointer;">Learn more →</span>
+    </div>
+    <div class="demo-card" onclick="openModal('decision-maker')">
         <div class="demo-icon">🚀</div>
         <h3>Easy Decision Maker</h3>
         <p>AI-powered decision intelligence that turns messy dilemmas into structured, actionable insights.</p>
@@ -625,6 +638,78 @@
 <footer>  © 2026 Rujuta Gandhi · Built with curiosity and caffeine</footer>
 
 <!-- DEMO MODAL -->
+
+<div class="modal-overlay" id="modal-overlay-usps-chatbot" onclick="handleOverlayClickById(event, 'modal-overlay-usps-chatbot')">
+  <div class="modal" id="modal-usps-chatbot">
+    <div class="modal-header">
+      <div>
+        <div class="modal-icon">📬</div>
+        <div class="modal-title">USPS Chatbot V1</div>
+        <div class="modal-subtitle">RAG Agent · Claude · Supabase pgvector</div>
+      </div>
+      <button class="modal-close" onclick="closeModalById('modal-overlay-usps-chatbot')">✕</button>    </div>
+    <div class="modal-body">
+
+      <div class="modal-section">
+        <div class="modal-section-label">The Problem</div>
+        <p>USPS customers frequently complain that it is hard to find the answer to their questions. The information exists in USPS FAQ documentation, but customers cannot navigate to the correct page. The opportunity: an AI agent that answers accurately from trusted content and knows when to escalate.</p>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-label">What I Built</div>
+        <p>A RAG-powered conversational chatbot that scrapes and indexes 286 real USPS FAQ articles, retrieves the most semantically relevant content for each question, and uses Claude to generate a grounded, plain-language response. The agent escalates gracefully when confidence is low — routing users to a real human rather than hallucinating an answer.</p>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-label">Key Product Decisions</div>
+        <ul>
+          <li>Used Firecrawl over BeautifulSoup — USPS FAQs are JavaScript-rendered via Salesforce Experience Cloud, which returns empty pages to traditional scrapers</li>
+          <li>Switched from sentence-transformers to Voyage AI (<code>voyage-3</code>) after evals showed sentence-transformers failed on the most common USPS queries — Hit Rate@5 jumped from ~80% to 100%</li>
+          <li>Set similarity threshold at 0.3 after running a 20-question golden set (10 common + 5 niche + 5 escalation) — LLM-as-Judge scored 4.93/5 faithfulness, 4.73/5 relevance</li>
+          <li>Chose Supabase pgvector over Pinecone to reduce infrastructure complexity and stay free-tier compatible for a V1</li>
+          <li>Deployed on Render free tier with a cron-job.org keep-alive ping every 10 minutes to prevent cold starts</li>
+        </ul>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-label">Learning Objectives & Summary</div>
+        <p>I wanted to vibe-code a conversational AI chatbot end-to-end — with hands-on exposure to tools like Firecrawl, Supabase, Claude Code, and Git — while thinking through the full product lifecycle: data acquisition, embedding strategy, retrieval quality, agent design, hosting tradeoffs, cost constraints, and frontend UX. The goal was to develop sharp instincts for where AI adds value, where it breaks, and what decisions a PM needs to make at every layer of the stack.</p>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-label">Tech Stack</div>
+        <div class="modal-tech">
+          <span>Claude Sonnet 4</span>
+          <span>Voyage AI (voyage-3)</span>
+          <span>Firecrawl</span>
+          <span>Supabase pgvector</span>
+          <span>FastAPI</span>
+          <span>Render</span>
+          <span>GitHub Pages</span>
+          <span>Python</span>
+          <span>cron-job.org</span>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-label">Thoughts for V2</div>
+        <ul>
+          <li>Streaming responses for a more natural, real-time chat feel</li>
+          <li>Conversation memory so follow-up questions work naturally across turns</li>
+          <li>Summarize retrieved articles before generating a response — improving answer quality and reducing token usage</li>
+          <li>Clarifying questions — when a query is ambiguous, ask one follow-up before retrieving to surface a more precise answer</li>
+        </ul>
+      </div>
+
+      <div class="modal-actions">
+        <a href="usps-chatbot/index.html" target="_blank" class="modal-btn-primary">Try it live →</a>
+        <a href="https://github.com/RujutaGandhi/rujutagandhi.github.io/blob/main/usps-chatbot/README.md" target="_blank" class="modal-btn-ghost">View README</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
   <div class="modal" id="modal-decision-maker">
     <div class="modal-header">
