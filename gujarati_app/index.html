@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Babu Learns Gujarati 🐒</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+Gujarati:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --success: #2ECC71;
+  --ink:     #1A1A2E;
+  --r:       24px;
+  --cr:      20px;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Nunito', sans-serif;
+  background: #FFF9F0;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+.screen { display: none; min-height: 100dvh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ═══ HOME ═══ */
+#screen-home {
+  background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%);
+  align-items: center; justify-content: flex-start;
+  padding: 0 0 40px; position: relative; overflow: hidden;
+}
+#screen-home::before {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 180px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 180'%3E%3Cpath fill='%231A3A2A' d='M0,180 L0,100 Q50,40 100,80 Q150,120 200,60 Q250,0 300,50 Q350,100 400,40 Q450,-20 500,30 Q550,80 600,20 Q650,-40 700,20 Q750,80 800,30 Q850,-20 900,40 Q950,100 1000,50 Q1050,0 1100,60 Q1150,120 1200,80 L1200,180 Z'/%3E%3C/svg%3E") no-repeat bottom;
+  background-size: cover; z-index: 0; pointer-events: none;
+}
+.home-header {
+  width: 100%; padding: 20px 24px 0;
+  display: flex; justify-content: space-between; align-items: center; z-index: 1;
+}
+.brand-logo { font-family: 'Baloo 2', cursive; font-size: 0.9rem; color: rgba(255,255,255,0.6); }
+.stars-counter {
+  background: rgba(255,255,255,0.18); border-radius: 20px;
+  padding: 6px 14px; color: white; font-weight: 800; font-size: 1rem;
+  display: flex; align-items: center; gap: 6px;
+}
+.babu-home {
+  font-size: 120px; margin: 12px 0; z-index: 1;
+  animation: babuFloat 3s ease-in-out infinite;
+  cursor: pointer; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.3)); user-select: none;
+}
+@keyframes babuFloat {
+  0%,100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-16px) rotate(3deg); }
+}
+.babu-speech {
+  background: white; border-radius: 20px; padding: 10px 20px;
+  font-size: 1rem; font-weight: 800; color: var(--ink);
+  z-index: 1; margin-bottom: 12px; position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15); max-width: 280px; text-align: center;
+}
+.babu-speech::before {
+  content: ''; position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  border: 8px solid transparent; border-bottom-color: white;
+}
+.home-title {
+  font-family: 'Baloo 2', cursive;
+  font-size: clamp(2rem,6vw,3rem); font-weight: 800;
+  color: white; text-align: center; margin-top: 16px; z-index: 1;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.3); line-height: 1.1;
+}
+.home-subtitle { color: rgba(255,255,255,0.82); font-size: 1rem; font-weight: 600; margin-top: 6px; z-index: 1; }
+
+.topics-grid {
+  display: flex; flex-direction: column; gap: 14px;
+  width: 100%; max-width: 420px; padding: 0 20px; z-index: 1; margin-top: 16px;
+}
+.topic-card {
+  border-radius: var(--r); padding: 18px 22px;
+  display: flex; align-items: center; gap: 16px;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  position: relative; overflow: hidden; border: none; text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+.topic-card:hover  { transform: scale(1.03); }
+.topic-card:active { transform: scale(0.98); }
+.topic-card.fruits { background: linear-gradient(135deg,#FF6B35,#FF9A5C); }
+.topic-card.colors { background: linear-gradient(135deg,#7B2FBE,#A855F7); }
+.topic-card.family { background: linear-gradient(135deg,#F7C948,#FFE066); }
+.topic-emoji { font-size: 44px; flex-shrink: 0; }
+.topic-name  { font-family: 'Baloo 2', cursive; font-size: 1.4rem; font-weight: 800; color: white; line-height: 1; }
+.topic-card.family .topic-name { color: #5C3D00; }
+.topic-sub   { font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.85); margin-top: 2px; }
+.topic-card.family .topic-sub { color: rgba(92,61,0,0.7); }
+.topic-info  { flex: 1; }
+.topic-stars { display: flex; gap: 3px; font-size: 18px; }
+.topic-progress-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 5px; background: rgba(255,255,255,0.2); }
+.topic-progress-fill { height: 100%; background: rgba(255,255,255,0.8); border-radius: 0 4px 4px 0; transition: width 0.5s; }
+
+.script-toggle-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: 100px; padding: 8px 20px; margin: 8px 0; z-index: 1; cursor: pointer;
+}
+.toggle-label { font-size: 0.85rem; font-weight: 700; color: white; }
+.toggle-switch { position: relative; width: 42px; height: 24px; cursor: pointer; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track { position: absolute; inset: 0; background: rgba(255,255,255,0.3); border-radius: 100px; transition: background 0.25s; }
+.toggle-switch input:checked ~ .toggle-track { background: #2ECC71; }
+.toggle-thumb { position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; background: white; border-radius: 50%; transition: transform 0.25s; }
+.toggle-switch input:checked ~ .toggle-track .toggle-thumb { transform: translateX(18px); }
+
+/* ═══ TOPIC THEMES ═══ */
+body.theme-fruits #screen-stacks, body.theme-fruits #screen-card,
+body.theme-fruits #screen-quiz,   body.theme-fruits #screen-reward {
+  background: linear-gradient(160deg,#C94A1A 0%,#FF6B35 50%,#FF9A5C 100%);
+}
+body.theme-colors #screen-stacks, body.theme-colors #screen-card,
+body.theme-colors #screen-quiz,   body.theme-colors #screen-reward {
+  background: linear-gradient(160deg,#3D0080 0%,#7B2FBE 50%,#A855F7 100%);
+}
+body.theme-family #screen-stacks, body.theme-family #screen-card,
+body.theme-family #screen-quiz,   body.theme-family #screen-reward {
+  background: linear-gradient(160deg,#C9981A 0%,#F7C948 50%,#FFE066 100%);
+}
+
+/* ═══ SHARED HEADER ═══ */
+.screen-header { width: 100%; padding: 20px 24px 16px; display: flex; align-items: center; gap: 14px; }
+.back-btn {
+  background: rgba(255,255,255,0.25); border: none; border-radius: 50%;
+  width: 44px; height: 44px; font-size: 1.2rem; cursor: pointer; color: white;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s; flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+}
+.back-btn:hover { background: rgba(255,255,255,0.4); }
+.screen-title { font-family: 'Baloo 2', cursive; font-size: 1.6rem; font-weight: 800; color: white; }
+
+/* ═══ STACKS ═══ */
+.stacks-body { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 420px; padding: 0 20px; align-self: center; }
+.stacks-subtitle { font-size: 0.88rem; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 4px; }
+.stack-card {
+  background: white; border-radius: var(--cr); padding: 20px 22px;
+  display: flex; align-items: center; gap: 16px; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  border: 3px solid transparent; -webkit-tap-highlight-color: transparent;
+}
+.stack-card:hover  { transform: scale(1.02); }
+.stack-card:active { transform: scale(0.98); }
+.stack-card.locked { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+.stack-icon { font-size: 36px; }
+.stack-info { flex: 1; }
+.stack-name { font-family: 'Baloo 2', cursive; font-size: 1.2rem; font-weight: 800; color: var(--ink); }
+.stack-desc { font-size: 0.82rem; color: #888; font-weight: 600; margin-top: 2px; }
+.stack-stars { font-size: 20px; display: flex; gap: 2px; }
+.stack-lock  { font-size: 28px; }
+
+/* ═══ FLASHCARD — picture only, swipe ═══ */
+#screen-card { align-items: center; padding-bottom: 40px; }
+
+.progress-dots { display: flex; gap: 8px; flex: 1; justify-content: center; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: all 0.3s; }
+.dot.active { background: white; transform: scale(1.3); }
+.dot.done   { background: rgba(255,255,255,0.85); }
+
+/* Swipe hint arrows */
+.swipe-hints {
+  display: flex; justify-content: space-between; align-items: center;
+  width: min(340px, 90vw); margin: 0 auto 6px; padding: 0 4px;
+}
+.swipe-hint {
+  font-size: 0.75rem; font-weight: 800; color: rgba(255,255,255,0.55);
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* The swipeable card */
+.card-swipe-wrapper {
+  width: min(300px, 84vw); position: relative; touch-action: pan-y;
+  cursor: grab; user-select: none;
+}
+.card-swipe-wrapper:active { cursor: grabbing; }
+
+.flashcard-simple {
+  width: 100%; background: white; border-radius: 28px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 32px 20px 28px;
+  transition: transform 0.08s, box-shadow 0.08s;
+  position: relative; will-change: transform;
+}
+.flashcard-simple.swiping-right {
+  box-shadow: 0 16px 48px rgba(46,204,113,0.4);
+  border: 3px solid rgba(46,204,113,0.6);
+}
+.flashcard-simple.swiping-left {
+  box-shadow: 0 16px 48px rgba(255,107,53,0.4);
+  border: 3px solid rgba(255,107,53,0.4);
+}
+
+/* Swipe labels that appear during drag */
+.swipe-label {
+  position: absolute; top: 18px; padding: 6px 14px; border-radius: 20px;
+  font-weight: 900; font-size: 1rem; opacity: 0; transition: opacity 0.1s;
+  pointer-events: none;
+}
+.swipe-label.got-it { right: 14px; background: #2ECC71; color: white; }
+.swipe-label.again  { left: 14px;  background: #FF6B35; color: white; }
+
+.card-emoji-big {
+  font-size: 130px; line-height: 1;
+  animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes popIn {
+  from { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0); opacity: 1; }
+}
+/* Gujarati script — only shown when toggle is on */
+.card-word-gujarati {
+  font-family: 'Noto Sans Gujarati', sans-serif;
+  font-size: 1.8rem; font-weight: 700; color: #7B2FBE;
+  text-align: center; margin-top: 10px; display: none;
+}
+.card-word-gujarati.visible { display: block; }
+
+.flag-btn {
+  position: absolute; top: 14px; right: 14px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #F8F8F8; border: 1.5px solid #eee; cursor: pointer;
+  font-size: 0.85rem; display: flex; align-items: center; justify-content: center;
+  color: #bbb; transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+}
+.flag-btn:hover, .flag-btn.flagged { background: #FFF3F1; border-color: #FF7461; color: #FF7461; }
+
+.audio-row {
+  display: flex; gap: 10px; justify-content: center; margin-top: 16px; width: 100%;
+}
+.audio-btn {
+  display: flex; align-items: center; gap: 7px; padding: 11px 20px;
+  border-radius: 100px; background: rgba(255,255,255,0.9);
+  border: 2px solid rgba(255,255,255,0.4); cursor: pointer;
+  font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.88rem; color: var(--ink);
+  transition: all 0.2s; box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+  -webkit-tap-highlight-color: transparent;
+}
+.audio-btn:hover { transform: scale(1.05); background: white; }
+
+/* ═══ QUIZ ═══ */
+#screen-quiz { align-items: center; padding-bottom: 32px; }
+.quiz-body { width: 100%; max-width: 460px; padding: 0 20px 20px; align-self: center; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+
+.quiz-badge {
+  display: inline-flex; align-items: center;
+  background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.4);
+  border-radius: 100px; padding: 5px 14px;
+  font-size: 0.8rem; font-weight: 800; color: white; align-self: flex-start;
+}
+
+/* Babu with animation — replaces static icon */
+.quiz-babu-wrap {
+  text-align: center; margin-bottom: -6px;
+}
+.quiz-babu-emoji {
+  font-size: 60px; display: inline-block;
+  animation: babuIdle 2s ease-in-out infinite;
+}
+@keyframes babuIdle {
+  0%,100% { transform: translateY(0) rotate(-4deg); }
+  50%      { transform: translateY(-8px) rotate(4deg); }
+}
+.quiz-babu-emoji.jump {
+  animation: babuJump 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes babuJump {
+  0%   { transform: translateY(0) rotate(0); }
+  40%  { transform: translateY(-40px) rotate(20deg); }
+  70%  { transform: translateY(-20px) rotate(-10deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+.quiz-babu-emoji.flip {
+  animation: babuFlip 0.6s ease-in-out forwards;
+}
+@keyframes babuFlip {
+  0%   { transform: rotateY(0); }
+  50%  { transform: rotateY(180deg) scale(1.2); }
+  100% { transform: rotateY(360deg); }
+}
+
+.quiz-prompt-word {
+  font-family: 'Baloo 2', cursive;
+  font-size: 2rem; font-weight: 800; color: white;
+  text-align: center; margin-top: 4px;
+}
+
+/* 2×2 picture grid */
+.quiz-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.quiz-pic-option {
+  background: white; border-radius: 20px; padding: 20px 10px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center;
+  border: 3px solid transparent; box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  transition: all 0.18s; -webkit-tap-highlight-color: transparent;
+}
+.quiz-pic-option:hover:not(:disabled) { transform: scale(1.05); }
+.quiz-pic-option .opt-emoji { font-size: 60px; line-height: 1; }
+.quiz-pic-option.correct { border-color: var(--success); background: #E8FFF2; }
+.quiz-pic-option.wrong   { border-color: #FF6B35; background: #FFF0EB; }
+.quiz-pic-option:disabled { cursor: default; }
+
+.quiz-next-btn {
+  align-self: center; padding: 14px 40px; border-radius: 100px;
+  background: white; border: none; color: var(--ink);
+  font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 1.1rem;
+  cursor: pointer; transition: all 0.2s; display: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15); -webkit-tap-highlight-color: transparent;
+}
+.quiz-next-btn.visible { display: block; }
+.quiz-next-btn:hover { transform: translateY(-2px); }
+
+/* ═══ REWARD ═══ */
+#screen-reward { align-items: center; justify-content: center; padding: 40px 20px; text-align: center; position: relative; }
+.confetti-wrapper { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 10; overflow: hidden; }
+.confetti-piece { position: absolute; top: -20px; font-size: 1.5rem; animation: confettiFall linear forwards; }
+@keyframes confettiFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+
+.babu-reward { font-size: 100px; animation: babuDance 0.5s ease-in-out infinite alternate; }
+@keyframes babuDance {
+  from { transform: rotate(-10deg) scale(1); }
+  to   { transform: rotate(10deg) scale(1.1); }
+}
+
+/* Stars row */
+.stars-display { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0; max-width: 320px; }
+.reward-star { font-size: 2.2rem; animation: starPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both; opacity: 0; }
+@keyframes starPop {
+  0%   { transform: scale(0) rotate(-30deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* Gujarati praise line */
+.reward-praise-gu {
+  font-family: 'Noto Sans Gujarati', sans-serif;
+  font-size: 1.8rem; font-weight: 700; color: white;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.2); margin-top: 8px;
+}
+.reward-praise-en {
+  font-family: 'Baloo 2', cursive; font-size: 1.3rem; font-weight: 800;
+  color: rgba(255,255,255,0.85); margin-top: 2px;
+}
+
+.words-learned { background: rgba(255,255,255,0.18); border-radius: 16px; padding: 14px 20px; margin: 12px 0; max-width: 340px; width: 100%; }
+.words-learned-title { font-size: 0.75rem; font-weight: 800; color: rgba(255,255,255,0.7); letter-spacing: 0.08em; margin-bottom: 10px; }
+.words-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.word-chip { background: rgba(255,255,255,0.88); border-radius: 20px; padding: 6px 12px; font-size: 0.88rem; font-weight: 800; color: var(--ink); }
+
+.reward-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+.reward-btn {
+  border: none; border-radius: 50px; padding: 15px 36px;
+  font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2); -webkit-tap-highlight-color: transparent;
+}
+.reward-btn.primary   { background: white; color: var(--ink); }
+.reward-btn.secondary { background: rgba(255,255,255,0.2); color: white; border: 3px solid rgba(255,255,255,0.5); }
+.reward-btn:hover { transform: translateY(-3px); }
+
+/* Toast */
+.toast {
+  position: fixed; top: 20px; left: 50%;
+  transform: translateX(-50%) translateY(-80px);
+  background: rgba(20,20,30,0.92); color: white;
+  border-radius: 100px; padding: 10px 20px;
+  font-size: 0.82rem; font-weight: 800; z-index: 500;
+  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  white-space: nowrap; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+@media (min-width: 600px) {
+  .home-title { font-size: 3rem; }
+  .babu-home  { font-size: 140px; }
+  .quiz-pic-option .opt-emoji { font-size: 72px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HOME ═══ -->
+<section id="screen-home" class="screen active">
+  <div class="home-header">
+    <span class="brand-logo">WhIndian Creations</span>
+    <div class="stars-counter">⭐ <span id="star-count">0</span></div>
+  </div>
+  <div class="babu-home" id="babu-home" onclick="babuTap()" aria-label="Babu the monkey">🐒</div>
+  <div class="babu-speech" id="babu-speech">Kem chho! Let's learn! 👋</div>
+  <h1 class="home-title">Babu Learns<br>Gujarati 🇮🇳</h1>
+  <p class="home-subtitle">Tap a topic — let's go!</p>
+
+  <div class="script-toggle-row" style="margin-top:12px;">
+    <span class="toggle-label">Show Gujarati script</span>
+    <label class="toggle-switch" aria-label="Show Gujarati script">
+      <input type="checkbox" id="toggle-script" onchange="toggleScript(this.checked)">
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    </label>
+  </div>
+
+  <div class="topics-grid" role="list">
+    <button class="topic-card fruits" onclick="selectTopic('fruits')" role="listitem">
+      <span class="topic-emoji">🍎</span>
+      <div class="topic-info">
+        <div class="topic-name">Fruits</div>
+        <div class="topic-sub">3 stacks · 15 words</div>
+      </div>
+      <div class="topic-stars" id="stars-fruits">☆☆☆</div>
+      <div class="topic-progress-bar"><div class="topic-progress-fill" id="prog-fruits" style="width:0%"></div></div>
+    </button>
+    <button class="topic-card colors" onclick="selectTopic('colors')" role="listitem">
+      <span class="topic-emoji">🎨</span>
+      <div class="topic-info">
+        <div class="topic-name">Colors</div>
+        <div class="topic-sub">3 stacks · 15 words</div>
+      </div>
+      <div class="topic-stars" id="stars-colors">☆☆☆</div>
+      <div class="topic-progress-bar"><div class="topic-progress-fill" id="prog-colors" style="width:0%"></div></div>
+    </button>
+    <button class="topic-card family" onclick="selectTopic('family')" role="listitem">
+      <span class="topic-emoji">🧒🏽</span>
+      <div class="topic-info">
+        <div class="topic-name">Family</div>
+        <div class="topic-sub">3 stacks · 15 words</div>
+      </div>
+      <div class="topic-stars" id="stars-family">☆☆☆</div>
+      <div class="topic-progress-bar"><div class="topic-progress-fill" id="prog-family" style="width:0%"></div></div>
+    </button>
+  </div>
+</section>
+
+<!-- ═══ STACKS ═══ -->
+<section id="screen-stacks" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" onclick="goHome()" aria-label="Go back">←</button>
+    <div class="screen-title" id="stacks-title">🍎 Fruits</div>
+  </div>
+  <div class="stacks-body">
+    <p class="stacks-subtitle">Pick a stack to start</p>
+    <div id="stacks-list"></div>
+  </div>
+</section>
+
+<!-- ═══ FLASHCARD — swipe, picture only ═══ -->
+<section id="screen-card" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" onclick="goStacks()" aria-label="Go back">←</button>
+    <div class="progress-dots" id="progress-dots"></div>
+  </div>
+
+  <!-- Swipe direction hints -->
+  <div class="swipe-hints">
+    <div class="swipe-hint">← Again</div>
+    <div class="swipe-hint">Got it! →</div>
+  </div>
+
+  <!-- Swipeable card — picture only -->
+  <div class="card-swipe-wrapper" id="card-swipe-wrapper">
+    <div class="flashcard-simple" id="flashcard-simple">
+      <button class="flag-btn" id="flag-btn" onclick="flagCard(event)" aria-label="Flag">🚩</button>
+      <div class="swipe-label got-it" id="label-gotit">Got it! ✓</div>
+      <div class="swipe-label again"  id="label-again">Again 🔄</div>
+      <div class="card-emoji-big" id="card-emoji">🍎</div>
+      <!-- Gujarati script only — hidden unless toggle on -->
+      <div class="card-word-gujarati" id="card-gujarati">સફરજન</div>
+    </div>
+  </div>
+
+  <div class="audio-row">
+    <button class="audio-btn" id="play-btn" onclick="playNormal()" aria-label="Hear word">🔊 Hear Babu</button>
+    <button class="audio-btn" id="slow-btn" onclick="playSlow()"   aria-label="Hear slowly">🐢 Slow</button>
+  </div>
+</section>
+
+<!-- ═══ QUIZ — animated Babu, picture choice ═══ -->
+<section id="screen-quiz" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" onclick="goStacks()" aria-label="Go back">←</button>
+    <div class="screen-title">⭐ Quiz time!</div>
+  </div>
+  <div class="quiz-body">
+    <span class="quiz-badge" id="quiz-badge">1 of 5</span>
+    <!-- Animated monkey — jumps on right, flips on wrong -->
+    <div class="quiz-babu-wrap">
+      <div class="quiz-babu-emoji" id="quiz-babu">🐒</div>
+    </div>
+    <div class="quiz-prompt-word" id="quiz-word">Safarjan</div>
+    <div class="quiz-options-grid" id="quiz-options" role="list"></div>
+    <button class="quiz-next-btn" id="quiz-next-btn" onclick="nextQuestion()">Next ▶</button>
+  </div>
+</section>
+
+<!-- ═══ REWARD ═══ -->
+<section id="screen-reward" class="screen">
+  <div class="confetti-wrapper" id="confetti-wrapper" aria-hidden="true"></div>
+  <div class="babu-reward">🐒</div>
+  <div class="stars-display" id="stars-display"></div>
+  <!-- Gujarati praise first, English second -->
+  <div class="reward-praise-gu" id="reward-praise-gu">સ઼ુ બઢ઼િયાર!</div>
+  <div class="reward-praise-en" id="reward-praise-en">Amazing!</div>
+  <div class="words-learned">
+    <div class="words-learned-title">WORDS YOU LEARNED</div>
+    <div class="words-chips" id="words-chips"></div>
+  </div>
+  <div class="reward-btns">
+    <button class="reward-btn primary"   onclick="playAgain()">Play again</button>
+    <button class="reward-btn secondary" onclick="goHome()">More topics</button>
+  </div>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ══════════════════════════════════════════
+// CONTENT — 3 topics × 3 stacks × 5 cards
+// Each card: emoji matches the word exactly
+// Distractors for quiz come from same stack only
+// ══════════════════════════════════════════
+// ══ ELEVENLABS CONFIG ══
+const EL_API_KEY  = 'sk_f89036403ccfee00f600acce7d6420f4c640cd0fd9bd7e79'; //not best practice to expose API key, but there is no billing behind it. Will fix in V2.
+const EL_VOICE_ID = 'dLkNK1NKF4kMdaVBqAb4'; //same as above
+const EL_MODEL    = 'eleven_multilingual_v2';
+
+const CONTENT = {
+  fruits: {
+    label:'🍎 Fruits', icon:'🍎',
+    stacks:[
+      { name:'Everyday Fruits', icon:'🍎', cards:[
+        {en:'Apple',      gu:'સફરજન',     tr:'Safarjan',  emoji:'🍎'},
+        {en:'Banana',     gu:'કેળું',      tr:'Kelun',     emoji:'🍌'},
+        {en:'Mango',      gu:'કેરી',      tr:'Keri',      emoji:'🥭'},
+        {en:'Orange',     gu:'નારંગી',    tr:'Narangi',   emoji:'🍊'},
+        {en:'Grapes',     gu:'દ્રાક્ષ',   tr:'Draaksha',  emoji:'🍇'},
+      ]},
+      { name:'Tropical Fruits', icon:'🥥', cards:[
+        {en:'Coconut',    gu:'નારિયળ',   tr:'Naariyal',  emoji:'🥥'},
+        {en:'Watermelon', gu:'તડબૂચ',    tr:'Tadbuch',   emoji:'🍉'},
+        {en:'Lemon',      gu:'લીંboo',   tr:'Limbu',     emoji:'🍋'},
+        {en:'Pineapple',  gu:'અનાનાસ',   tr:'Anaanas',   emoji:'🍍'},
+        {en:'Papaya',     gu:'પપૈયું',   tr:'Papaiyun',  emoji:'🧡'},
+      ]},
+      { name:'More Fruits', icon:'🍓', cards:[
+        {en:'Strawberry', gu:'સ્ટ્રોberi',tr:'Strawberry',emoji:'🍓'},
+        {en:'Cherry',     gu:'ચેરી',      tr:'Cheri',     emoji:'🍒'},
+        {en:'Pear',       gu:'નાshpaati', tr:'Naashpaati',emoji:'🍐'},
+        {en:'Peach',      gu:'આડૂ',      tr:'Aadu',      emoji:'🍑'},
+        {en:'Guava',      gu:'જામફળ',    tr:'Jaamfal',   emoji:'🍏'},
+      ]},
+    ]
+  },
+  colors: {
+    label:'🎨 Colors', icon:'🎨',
+    stacks:[
+      { name:'Primary Colors', icon:'🔴', cards:[
+        {en:'Red',    gu:'લાલ',    tr:'Laal',    emoji:'🔴'},
+        {en:'Blue',   gu:'ભૂરો',   tr:'Bhooro',  emoji:'🔵'},
+        {en:'Yellow', gu:'પીળો',   tr:'Peelo',   emoji:'🟡'},
+        {en:'Green',  gu:'લીલો',   tr:'Leelo',   emoji:'🟢'},
+        {en:'Orange', gu:'નારંગી', tr:'Narangi', emoji:'🟠'},
+      ]},
+      { name:'More Colors', icon:'🟣', cards:[
+        {en:'Purple', gu:'જાંbuDi', tr:'Jaambuḍi',emoji:'🟣'},
+        {en:'Pink',   gu:'ગુlabi',  tr:'Gulaabi',  emoji:'🌸'},
+        {en:'White',  gu:'સફેद',    tr:'Safed',    emoji:'⚪'},
+        {en:'Black',  gu:'કaaloo',  tr:'Kaalo',    emoji:'⚫'},
+        {en:'Brown',  gu:'ભૂroo',   tr:'Bhooro',   emoji:'🟫'},
+      ]},
+      { name:'Nature Colors', icon:'🌟', cards:[
+        {en:'Gold',      gu:'સoneri',      tr:'Soneri',         emoji:'🌟'},
+        {en:'Silver',    gu:'ચaandi',      tr:'Chaandi',        emoji:'🌙'},
+        {en:'Sky blue',  gu:'આkash bhooro',tr:'Aakaash bhooro', emoji:'🌤️'},
+        {en:'Leaf green',gu:'paandadu',    tr:'Paandada jevo',  emoji:'🍃'},
+        {en:'Rose pink', gu:'ગulaab',      tr:'Gulaab gulaabi', emoji:'🌹'},
+      ]},
+    ]
+  },
+  family: {
+    label:'🧒🏽 Family', icon:'🧒🏽',
+    stacks:[
+      { name:'Immediate Family', icon:'👨‍👩‍👧‍👦', cards:[
+        {en:'Mama',    gu:'Mammi',  tr:'Mammi',  emoji:'👩🏽'},
+        {en:'Papa',    gu:'Pappa',  tr:'Pappa',  emoji:'👨🏽'},
+        {en:'Brother', gu:'Bhai',   tr:'Bhai',   emoji:'👦🏽'},
+        {en:'Sister',  gu:'Bahen',  tr:'Bahen',  emoji:'👧🏽'},
+        {en:'Baby',    gu:'Baal',   tr:'Baal',   emoji:'👶🏽'},
+      ]},
+      { name:'Grandparents', icon:'👴🏽', cards:[
+        {en:'Nana (grandpa)', gu:'Naanaa',  tr:'Naanaa',  emoji:'👴🏽'},
+        {en:'Nani (grandma)', gu:'Naani',   tr:'Naani',   emoji:'👵🏽'},
+        {en:'Dada (grandpa)', gu:'Daadaa',  tr:'Daadaa',  emoji:'👴🏽'},
+        {en:'Dadi (grandma)', gu:'Daadi',   tr:'Daadi',   emoji:'👵🏽'},
+        {en:'Family',         gu:'Parivaar',tr:'Parivaar',emoji:'👨‍👩‍👧‍👦'},
+      ]},
+      { name:'Extended Family', icon:'🧔🏽', cards:[
+        {en:'Mama (uncle)', gu:'Maama', tr:'Maama', emoji:'🧔🏽'},
+        {en:'Mami (aunt)',  gu:'Maami', tr:'Maami', emoji:'👩🏽'},
+        {en:'Kaka (uncle)', gu:'Kaaka', tr:'Kaaka', emoji:'👨🏽'},
+        {en:'Kaki (aunt)',  gu:'Kaaki', tr:'Kaaki', emoji:'🧕🏽'},
+        {en:'Friend',       gu:'Mitra', tr:'Mitra', emoji:'🤝'},
+      ]},
+    ]
+  }
+};
+
+// Gujarati + English praise pairs
+const PRAISE_PAIRS = [
+  { gu:'સ઼ુ બઢ઼િયાર!', en:'Amazing!',   spoken:'Shu badhiyaar' },
+  { gu:'એkdam saras!',   en:'Excellent!', spoken:'Ekdam saras'   },
+  { gu:'Bahut sundar!',  en:'Beautiful!', spoken:'Bahut sundar'  },
+  { gu:'Wah wah!',       en:'Wonderful!', spoken:'Wah wah'       },
+  { gu:'Super chhe!',    en:'Super!',     spoken:'Super chhe'    },
+];
+const BABU_SPEECHES = ["Kem chho! Let's learn! 👋","Tap a topic! 🎯","You're doing great! 🌟","Aavjo! Come on! 💪","Kheech-kheech! 🐒"];
+
+// ══ STATE ══
+let state = {
+  showScript: localStorage.getItem('babu-script') === 'true',
+  topic: null, stackIdx: 0, cardIdx: 0,
+  learnedCards: [], reviewCards: [],
+  quizQuestions: [], quizIdx: 0, quizScore: 0,
+  wrongAttempts: 0,  // track wrong attempts per question
+  flaggedCards:    JSON.parse(localStorage.getItem('babu-flags')  || '[]'),
+  completedStacks: JSON.parse(localStorage.getItem('babu-stacks') || '{}'),
+  totalStars:      parseInt(localStorage.getItem('babu-stars')    || '0'),
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('toggle-script').checked = state.showScript;
+  updateHomeProgress();
+  initSwipe();
+});
+
+// ══ NAV ══
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function goHome() {
+  document.body.className = '';
+  state.topic = null;
+  updateHomeProgress();
+  showScreen('home');
+}
+function goStacks() { if (state.topic) renderStacks(state.topic); }
+function selectTopic(key) {
+  state.topic = key;
+  document.body.className = 'theme-' + key;
+  renderStacks(key);
+}
+
+function renderStacks(key) {
+  const topic = CONTENT[key];
+  document.getElementById('stacks-title').textContent = topic.label;
+  const list = document.getElementById('stacks-list');
+  list.innerHTML = '';
+  topic.stacks.forEach((stack, i) => {
+    const stackKey   = key + '-' + i;
+    const done       = !!state.completedStacks[stackKey];
+    const locked     = i > 0 && !state.completedStacks[key + '-' + (i - 1)];
+    const starsEarned = state.completedStacks[stackKey] || 0;
+
+    const el = document.createElement('div');
+    el.className = 'stack-card' + (locked ? ' locked' : '');
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', locked ? '-1' : '0');
+    // Stack icon = first card emoji of the stack
+    const stackEmoji = stack.cards[0].emoji;
+    el.innerHTML = `
+      <span class="stack-icon">${stackEmoji}</span>
+      <div class="stack-info">
+        <div class="stack-name">${stack.name}</div>
+        <div class="stack-desc">${stack.cards.length} words</div>
+      </div>
+      ${done   ? `<div class="stack-stars">${'⭐'.repeat(Math.min(starsEarned, 5))}</div>`
+               : locked ? '<div class="stack-lock">🔒</div>'
+               : '<div class="stack-stars">☆☆☆☆☆</div>'}
+    `;
+    if (!locked) {
+      el.onclick    = () => startStack(key, i);
+      el.onkeydown  = e => { if (e.key === 'Enter') startStack(key, i); };
+    }
+    list.appendChild(el);
+  });
+  showScreen('stacks');
+}
+
+function startStack(key, idx) {
+  state.topic    = key;
+  state.stackIdx = idx;
+  state.cardIdx  = 0;
+  state.learnedCards = [];
+  state.reviewCards  = [];
+  renderCard();
+  showScreen('card');
+}
+
+// ══ FLASHCARD ══
+function renderCard() {
+  const stack = CONTENT[state.topic].stacks[state.stackIdx];
+  const card  = stack.cards[state.cardIdx];
+
+  // Picture only — no words on card
+  document.getElementById('card-emoji').textContent    = card.emoji;
+  document.getElementById('card-gujarati').textContent = card.gu;
+  applyScriptToggle();
+
+  // Progress dots
+  const dotsEl = document.getElementById('progress-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < stack.cards.length; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < state.cardIdx ? ' done' : i === state.cardIdx ? ' active' : '');
+    dotsEl.appendChild(d);
+  }
+
+  // Flag state
+  const cardKey = `${state.topic}-${state.stackIdx}-${state.cardIdx}`;
+  document.getElementById('flag-btn').classList.toggle('flagged', state.flaggedCards.includes(cardKey));
+
+  // Reset swipe labels
+  document.getElementById('label-gotit').style.opacity = '0';
+  document.getElementById('label-again').style.opacity  = '0';
+
+  // Re-trigger pop animation
+  const emojiEl = document.getElementById('card-emoji');
+  emojiEl.style.animation = 'none';
+  requestAnimationFrame(() => { emojiEl.style.animation = ''; });
+
+  setTimeout(playNormal, 400);
+}
+
+function advanceCard() {
+  const stack = CONTENT[state.topic].stacks[state.stackIdx];
+  if (state.cardIdx < stack.cards.length - 1) {
+    state.cardIdx++;
+    renderCard();
+  } else {
+    startQuiz();
+  }
+}
+
+function markLearned() {
+  state.learnedCards.push(state.cardIdx);
+  animateCardOut('right', advanceCard);
+}
+function markReview() {
+  state.reviewCards.push(state.cardIdx);
+  animateCardOut('left', advanceCard);
+}
+
+// Card fly-out animation on swipe complete
+function animateCardOut(dir, cb) {
+  const card = document.getElementById('flashcard-simple');
+  card.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+  card.style.transform  = dir === 'right' ? 'translateX(120%) rotate(15deg)' : 'translateX(-120%) rotate(-15deg)';
+  card.style.opacity    = '0';
+  setTimeout(() => {
+    card.style.transition = '';
+    card.style.transform  = '';
+    card.style.opacity    = '';
+    cb();
+  }, 300);
+}
+
+// ══ SWIPE GESTURE ══
+function initSwipe() {
+  const wrapper = document.getElementById('card-swipe-wrapper');
+  const card    = document.getElementById('flashcard-simple');
+  const lblGot  = document.getElementById('label-gotit');
+  const lblAgn  = document.getElementById('label-again');
+  let startX = null, dragging = false;
+
+  const onStart = (x) => { startX = x; dragging = true; };
+  const onMove  = (x) => {
+    if (!dragging || startX === null) return;
+    const dx = x - startX;
+    card.style.transform = `translateX(${dx}px) rotate(${dx * 0.04}deg)`;
+    // Show labels
+    if (dx > 30)  { lblGot.style.opacity = Math.min((dx - 30) / 80, 1); lblAgn.style.opacity = '0'; card.classList.add('swiping-right'); card.classList.remove('swiping-left'); }
+    else if (dx < -30) { lblAgn.style.opacity = Math.min((-dx - 30) / 80, 1); lblGot.style.opacity = '0'; card.classList.add('swiping-left'); card.classList.remove('swiping-right'); }
+    else { lblGot.style.opacity = '0'; lblAgn.style.opacity = '0'; card.classList.remove('swiping-right','swiping-left'); }
+  };
+  const onEnd = (x) => {
+    if (!dragging) return;
+    dragging = false;
+    const dx = x - startX;
+    card.classList.remove('swiping-right','swiping-left');
+    if (dx > 70)       { markLearned(); }
+    else if (dx < -70) { markReview(); }
+    else { card.style.transition = 'transform 0.3s'; card.style.transform = ''; setTimeout(() => { card.style.transition = ''; }, 300); lblGot.style.opacity = '0'; lblAgn.style.opacity = '0'; }
+    startX = null;
+  };
+
+  // Touch
+  wrapper.addEventListener('touchstart', e => onStart(e.touches[0].clientX), { passive: true });
+  wrapper.addEventListener('touchmove',  e => onMove(e.touches[0].clientX),  { passive: true });
+  wrapper.addEventListener('touchend',   e => onEnd(e.changedTouches[0].clientX));
+  // Mouse
+  wrapper.addEventListener('mousedown',  e => onStart(e.clientX));
+  window.addEventListener ('mousemove',  e => { if (dragging) onMove(e.clientX); });
+  window.addEventListener ('mouseup',    e => { if (dragging) onEnd(e.clientX); });
+}
+
+// ══ SCRIPT TOGGLE ══
+function toggleScript(show) {
+  state.showScript = show;
+  localStorage.setItem('babu-script', show);
+  applyScriptToggle();
+  showToast(show ? 'Gujarati script on ✓' : 'Gujarati script off');
+}
+function applyScriptToggle() {
+  const guEl = document.getElementById('card-gujarati');
+  if (!guEl) return;
+  state.showScript ? guEl.classList.add('visible') : guEl.classList.remove('visible');
+}
+
+// ══ AUDIO (ELEVENLABS) ══
+async function speakText(text, rate = 1.0, pitch = 1.0) {
+  try {
+    const res = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}`,
+      {
+        method: 'POST',
+        headers: {
+          'xi-api-key': EL_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          model_id: EL_MODEL,
+          voice_settings: {
+            stability: 0.6,
+            similarity_boost: 0.85,
+            style: 0.4,
+            use_speaker_boost: true,
+          },
+        }),
+      }
+    );
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.playbackRate = rate;   // 1.0 normal, 0.75 slow
+    audio.play();
+    audio.onended = () => URL.revokeObjectURL(url); // cleanup
+  } catch (err) {
+    console.warn('ElevenLabs fallback:', err);
+    // graceful fallback to Web Speech if EL fails
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = rate; u.pitch = 1.3;
+    window.speechSynthesis.speak(u);
+  }
+}
+
+// ══ FLAG ══
+function flagCard(e) {
+  e.stopPropagation();
+  const cardKey = `${state.topic}-${state.stackIdx}-${state.cardIdx}`;
+  const btn = document.getElementById('flag-btn');
+  if (state.flaggedCards.includes(cardKey)) {
+    state.flaggedCards = state.flaggedCards.filter(k => k !== cardKey);
+    btn.classList.remove('flagged');
+    showToast('Flag removed');
+  } else {
+    state.flaggedCards.push(cardKey);
+    btn.classList.add('flagged');
+    localStorage.setItem('babu-flags', JSON.stringify(state.flaggedCards));
+    showToast('Flagged 🚩');
+  }
+}
+
+// ══ QUIZ — picture choice, same-stack distractors only ══
+function buildLocalQuiz() {
+  const stack = CONTENT[state.topic].stacks[state.stackIdx];
+  return stack.cards.map(card => {
+    // Distractors from the SAME STACK only
+    const distractors = stack.cards
+      .filter(c => c.en !== card.en)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    const options = [card, ...distractors].sort(() => Math.random() - 0.5);
+    return { word: card.tr, wordEn: card.en, correctEn: card.en, options };
+  });
+}
+
+function startQuiz() {
+  state.quizIdx    = 0;
+  state.quizScore  = 0;
+  state.wrongAttempts = 0;
+  state.quizQuestions = buildLocalQuiz();
+  showScreen('quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = state.quizQuestions[state.quizIdx];
+  document.getElementById('quiz-badge').textContent = `${state.quizIdx + 1} of ${state.quizQuestions.length}`;
+  document.getElementById('quiz-word').textContent  = q.word;
+  document.getElementById('quiz-next-btn').classList.remove('visible');
+  state.wrongAttempts = 0;
+
+  // Reset monkey animation
+  const babu = document.getElementById('quiz-babu');
+  babu.className = 'quiz-babu-emoji';
+
+  const optEl = document.getElementById('quiz-options');
+  optEl.innerHTML = '';
+  q.options.forEach(card => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-pic-option';
+    btn.setAttribute('role', 'listitem');
+    btn.innerHTML = `<span class="opt-emoji">${card.emoji}</span>`;
+    btn.onclick = () => selectAnswer(btn, card.en, q.correctEn, q.word);
+    optEl.appendChild(btn);
+  });
+
+  // Babu speaks the word
+  setTimeout(() => speakText(q.word, 1.1, 1.4), 350);
+}
+
+function animateBabu(type) {
+  const babu = document.getElementById('quiz-babu');
+  babu.className = 'quiz-babu-emoji ' + type;
+  // Reset after animation
+  babu.addEventListener('animationend', () => {
+    babu.className = 'quiz-babu-emoji';
+  }, { once: true });
+}
+
+function selectAnswer(btn, chosen, correct, word) {
+  const isCorrect = chosen === correct;
+
+  if (isCorrect) {
+    // Lock all buttons, mark correct
+    document.querySelectorAll('.quiz-pic-option').forEach(b => { b.disabled = true; });
+    btn.classList.add('correct');
+    state.quizScore++;
+    animateBabu('jump');
+    const praise = PRAISE_PAIRS[Math.floor(Math.random() * PRAISE_PAIRS.length)];
+    speakText(praise.spoken + '! ' + word, 1.1, 1.5);
+    setTimeout(() => document.getElementById('quiz-next-btn').classList.add('visible'), 600);
+  } else {
+    btn.classList.add('wrong');
+    btn.disabled = true;
+    state.wrongAttempts++;
+    animateBabu('flip');
+
+    if (state.wrongAttempts === 1) {
+      // First wrong — encourage, try again
+      speakText('Try karo! ' + word, 1.0, 1.2);
+    } else {
+      // Second wrong — give the answer, move on
+      // Highlight correct button
+      document.querySelectorAll('.quiz-pic-option').forEach(b => { b.disabled = true; });
+      document.querySelectorAll('.quiz-pic-option').forEach(b => {
+        // find the correct one by re-querying current question options
+        const q = state.quizQuestions[state.quizIdx];
+        const correctCard = q.options.find(c => c.en === correct);
+        if (b.querySelector('.opt-emoji').textContent === correctCard.emoji) b.classList.add('correct');
+      });
+      speakText('Shu badhiyaar try! ' + word + '. ' + word, 1.0, 1.3);
+      setTimeout(() => document.getElementById('quiz-next-btn').classList.add('visible'), 800);
+    }
+  }
+}
+
+function nextQuestion() {
+  state.quizIdx++;
+  if (state.quizIdx < state.quizQuestions.length) {
+    renderQuestion();
+  } else {
+    showReward();
+  }
+}
+
+// ══ REWARD ══
+function showReward() {
+  const stack    = CONTENT[state.topic].stacks[state.stackIdx];
+  const wordCount = stack.cards.length;
+  const stackKey  = state.topic + '-' + state.stackIdx;
+  const alreadyDone = !!state.completedStacks[stackKey];  // no duplicate stars
+
+  // Pick praise pair
+  const praise = PRAISE_PAIRS[Math.floor(Math.random() * PRAISE_PAIRS.length)];
+  document.getElementById('reward-praise-gu').textContent = praise.gu;
+  document.getElementById('reward-praise-en').textContent = praise.en;
+
+  // Stars — one per word, shown with animation
+  const starsEl = document.getElementById('stars-display');
+  starsEl.innerHTML = '';
+  for (let i = 0; i < wordCount; i++) {
+    const s = document.createElement('div');
+    s.className = 'reward-star';
+    s.style.animationDelay = `${0.2 + i * 0.1}s`;
+    s.textContent = '⭐';
+    starsEl.appendChild(s);
+  }
+
+  // Only award stars once per stack
+  if (!alreadyDone) {
+    state.completedStacks[stackKey] = wordCount;
+    localStorage.setItem('babu-stacks', JSON.stringify(state.completedStacks));
+    state.totalStars += wordCount;
+    localStorage.setItem('babu-stars', state.totalStars);
+    document.getElementById('star-count').textContent = state.totalStars;
+  }
+
+  // Word chips — emoji only + transliteration, clean
+  const chipsEl = document.getElementById('words-chips');
+  chipsEl.innerHTML = '';
+  stack.cards.forEach(c => {
+    const chip = document.createElement('div');
+    chip.className = 'word-chip';
+    chip.textContent = `${c.emoji} ${c.tr}`;
+    chipsEl.appendChild(chip);
+  });
+
+  // Speak praise in Gujarati spoken form + English
+  setTimeout(() => speakText(praise.spoken + '! ' + praise.en, 1.1, 1.5), 500);
+
+  spawnConfetti();
+  showScreen('reward');
+}
+
+function spawnConfetti() {
+  const wrap = document.getElementById('confetti-wrapper');
+  wrap.innerHTML = '';
+  const emojis = ['🎉','⭐','🌟','🎊','🏆','🌈','🎈'];
+  for (let i = 0; i < 28; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    el.style.cssText = `left:${Math.random()*100}%;animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.6}s;`;
+    wrap.appendChild(el);
+  }
+}
+
+function playAgain() { startStack(state.topic, state.stackIdx); }
+
+function updateHomeProgress() {
+  ['fruits','colors','family'].forEach(key => {
+    const total = CONTENT[key].stacks.length;
+    const done  = CONTENT[key].stacks.filter((_,i) => !!state.completedStacks[key+'-'+i]).length;
+    const prog  = document.getElementById('prog-'  + key);
+    const stars = document.getElementById('stars-' + key);
+    if (prog)  prog.style.width  = (done / total * 100) + '%';
+    if (stars) stars.textContent = done === total ? '⭐⭐⭐' : done > 0 ? '⭐' + '☆'.repeat(total - done) : '☆☆☆';
+  });
+  document.getElementById('star-count').textContent = state.totalStars;
+}
+
+function babuTap() {
+  const s = document.getElementById('babu-speech');
+  const b = document.getElementById('babu-home');
+  s.textContent = BABU_SPEECHES[Math.floor(Math.random() * BABU_SPEECHES.length)];
+  b.style.transform = 'scale(1.2) rotate(15deg)';
+  setTimeout(() => { b.style.transform = ''; }, 300);
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// Keyboard shortcuts (card screen)
+document.addEventListener('keydown', e => {
+  const active = document.querySelector('.screen.active')?.id;
+  if (active === 'screen-card') {
+    if (e.key === 'p') playNormal();
+    if (e.key === 's') playSlow();
+    if (e.key === 'ArrowRight' || e.key === 'l') markLearned();
+    if (e.key === 'ArrowLeft'  || e.key === 'r') markReview();
+  }
+  if (active === 'screen-quiz' && e.key === 'Enter') {
+    const nb = document.getElementById('quiz-next-btn');
+    if (nb.classList.contains('visible')) nextQuestion();
+  }
+});
+</script>
+</body>
+</html>
