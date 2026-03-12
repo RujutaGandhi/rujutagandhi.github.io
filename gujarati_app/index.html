@@ -824,6 +824,14 @@ function applyScriptToggle() {
 }
 
 // ══ AUDIO (ELEVENLABS) ══
+let currentAudio = null;
+function playNormal() { playCard(1.0); }
+function playSlow()   { playCard(0.72); }
+function playCard(rate) {
+  const card = CONTENT[state.topic].stacks[state.stackIdx].cards[state.cardIdx];
+  speakText(card.tr, rate);
+}
+
 async function speakText(text, rate = 1.0, pitch = 1.0) {
   try {
     const res = await fetch(
