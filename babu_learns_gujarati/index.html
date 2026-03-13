@@ -28,7 +28,7 @@ body {
 #screen-home {
   background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%);
   align-items: center; justify-content: flex-start;
-  padding: 0 0 40px; position: relative; overflow: hidden;
+  padding: 0 0 40px; position: relative; overflow: visible;
 }
 #screen-home::before {
   content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 180px;
@@ -86,14 +86,19 @@ body {
 }
 .topic-card:hover  { transform: scale(1.03); }
 .topic-card:active { transform: scale(0.98); }
-.topic-card.fruits { background: linear-gradient(135deg,#FF6B35,#FF9A5C); }
-.topic-card.colors { background: linear-gradient(135deg,#7B2FBE,#A855F7); }
-.topic-card.family { background: linear-gradient(135deg,#F7C948,#FFE066); }
+.topic-card.fruits    { background: linear-gradient(135deg,#FF6B35,#FF9A5C); }
+.topic-card.colors    { background: linear-gradient(135deg,#7B2FBE,#A855F7); }
+.topic-card.family    { background: linear-gradient(135deg,#F7C948,#FFE066); }
+.topic-card.numbers   { background: linear-gradient(135deg,#0EA5E9,#38BDF8); }
+.topic-card.bodyparts { background: linear-gradient(135deg,#10B981,#34D399); }
+.topic-card.emotions  { background: linear-gradient(135deg,#F43F5E,#FB7185); }
+.topic-tr { font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.75); margin-top: 2px; }
 .topic-emoji { font-size: 44px; flex-shrink: 0; }
 .topic-name  { font-family: 'Baloo 2', cursive; font-size: 1.4rem; font-weight: 800; color: white; line-height: 1; }
 .topic-card.family .topic-name { color: #5C3D00; }
 .topic-sub   { font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.85); margin-top: 2px; }
 .topic-card.family .topic-sub { color: rgba(92,61,0,0.7); }
+.topic-card.family .topic-tr   { color: rgba(92,61,0,0.6); }
 .topic-info  { flex: 1; }
 .topic-stars { display: flex; gap: 3px; font-size: 18px; }
 .topic-progress-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 5px; background: rgba(255,255,255,0.2); }
@@ -407,33 +412,7 @@ body.theme-family #screen-quiz,   body.theme-family #screen-reward {
   </div>
 
   <div class="topics-grid" role="list">
-    <button class="topic-card fruits" onclick="selectTopic('fruits')" role="listitem">
-      <span class="topic-emoji">🍎</span>
-      <div class="topic-info">
-        <div class="topic-name">Fruits</div>
-        <div class="topic-sub">3 stacks · 15 words</div>
-      </div>
-      <div class="topic-stars" id="stars-fruits">☆☆☆</div>
-      <div class="topic-progress-bar"><div class="topic-progress-fill" id="prog-fruits" style="width:0%"></div></div>
-    </button>
-    <button class="topic-card colors" onclick="selectTopic('colors')" role="listitem">
-      <span class="topic-emoji">🎨</span>
-      <div class="topic-info">
-        <div class="topic-name">Colors</div>
-        <div class="topic-sub">3 stacks · 15 words</div>
-      </div>
-      <div class="topic-stars" id="stars-colors">☆☆☆</div>
-      <div class="topic-progress-bar"><div class="topic-progress-fill" id="prog-colors" style="width:0%"></div></div>
-    </button>
-    <button class="topic-card family" onclick="selectTopic('family')" role="listitem">
-      <span class="topic-emoji">🧒🏽</span>
-      <div class="topic-info">
-        <div class="topic-name">Family</div>
-        <div class="topic-sub">3 stacks · 15 words</div>
-      </div>
-      <div class="topic-stars" id="stars-family">☆☆☆</div>
-      <div class="topic-progress-bar"><div class="topic-progress-fill" id="prog-family" style="width:0%"></div></div>
-    </button>
+    <div id="topics-grid-dynamic"></div>
   </div>
 </section>
 
@@ -524,91 +503,47 @@ body.theme-family #screen-quiz,   body.theme-family #screen-reward {
 // Each card: emoji matches the word exactly
 // Distractors for quiz come from same stack only
 // ══════════════════════════════════════════
-// ══ ELEVENLABS CONFIG ══
-const EL_API_KEY  = 'sk_f89036403ccfee00f600acce7d6420f4c640cd0fd9bd7e79'; //not best practice to expose API key, but there is no billing behind it. Will fix in V2.
-const EL_VOICE_ID = 'dLkNK1NKF4kMdaVBqAb4'; //same as above
-const EL_MODEL    = 'eleven_multilingual_v2';
+// ══ SUPABASE CONFIG ══
+const CARDS_ENDPOINT = 'https://iulwgadxcojjmbggvfrj.supabase.co/functions/v1/get-cards';
+const TTS_ENDPOINT   = 'https://iulwgadxcojjmbggvfrj.supabase.co/functions/v1/tts-proxy';
 
-const CONTENT = {
-  fruits: {
-    label:'🍎 Fruits', icon:'🍎',
-    stacks:[
-      { name:'Everyday Fruits', icon:'🍎', cards:[
-        {en:'Apple',      gu:'સફરજન',     tr:'Safarjan',  emoji:'🍎'},
-        {en:'Banana',     gu:'કેળું',      tr:'Kelun',     emoji:'🍌'},
-        {en:'Mango',      gu:'કેરી',      tr:'Keri',      emoji:'🥭'},
-        {en:'Orange',     gu:'નારંગી',    tr:'Narangi',   emoji:'🍊'},
-        {en:'Grapes',     gu:'દ્રાક્ષ',   tr:'Draaksha',  emoji:'🍇'},
-      ]},
-      { name:'Tropical Fruits', icon:'🥥', cards:[
-        {en:'Coconut',    gu:'નારિયળ',   tr:'Naariyal',  emoji:'🥥'},
-        {en:'Watermelon', gu:'તડબૂચ',    tr:'Tadbuch',   emoji:'🍉'},
-        {en:'Lemon',      gu:'લીંboo',   tr:'Limbu',     emoji:'🍋'},
-        {en:'Pineapple',  gu:'અનાનાસ',   tr:'Anaanas',   emoji:'🍍'},
-        {en:'Papaya',     gu:'પપૈયું',   tr:'Papaiyun',  emoji:'🧡'},
-      ]},
-      { name:'More Fruits', icon:'🍓', cards:[
-        {en:'Strawberry', gu:'સ્ટ્રોberi',tr:'Strawberry',emoji:'🍓'},
-        {en:'Cherry',     gu:'ચેરી',      tr:'Cheri',     emoji:'🍒'},
-        {en:'Pear',       gu:'નાshpaati', tr:'Naashpaati',emoji:'🍐'},
-        {en:'Peach',      gu:'આડૂ',      tr:'Aadu',      emoji:'🍑'},
-        {en:'Guava',      gu:'જામફળ',    tr:'Jaamfal',   emoji:'🍏'},
-      ]},
-    ]
-  },
-  colors: {
-    label:'🎨 Colors', icon:'🎨',
-    stacks:[
-      { name:'Primary Colors', icon:'🔴', cards:[
-        {en:'Red',    gu:'લાલ',    tr:'Laal',    emoji:'🔴'},
-        {en:'Blue',   gu:'ભૂરો',   tr:'Bhooro',  emoji:'🔵'},
-        {en:'Yellow', gu:'પીળો',   tr:'Peelo',   emoji:'🟡'},
-        {en:'Green',  gu:'લીલો',   tr:'Leelo',   emoji:'🟢'},
-        {en:'Orange', gu:'નારંગી', tr:'Narangi', emoji:'🟠'},
-      ]},
-      { name:'More Colors', icon:'🟣', cards:[
-        {en:'Purple', gu:'જાંbuDi', tr:'Jaambuḍi',emoji:'🟣'},
-        {en:'Pink',   gu:'ગુlabi',  tr:'Gulaabi',  emoji:'🌸'},
-        {en:'White',  gu:'સફેद',    tr:'Safed',    emoji:'⚪'},
-        {en:'Black',  gu:'કaaloo',  tr:'Kaalo',    emoji:'⚫'},
-        {en:'Brown',  gu:'ભૂroo',   tr:'Bhooro',   emoji:'🟫'},
-      ]},
-      { name:'Nature Colors', icon:'🌟', cards:[
-        {en:'Gold',      gu:'સoneri',      tr:'Soneri',         emoji:'🌟'},
-        {en:'Silver',    gu:'ચaandi',      tr:'Chaandi',        emoji:'🌙'},
-        {en:'Sky blue',  gu:'આkash bhooro',tr:'Aakaash bhooro', emoji:'🌤️'},
-        {en:'Leaf green',gu:'paandadu',    tr:'Paandada jevo',  emoji:'🍃'},
-        {en:'Rose pink', gu:'ગulaab',      tr:'Gulaab gulaabi', emoji:'🌹'},
-      ]},
-    ]
-  },
-  family: {
-    label:'🧒🏽 Family', icon:'🧒🏽',
-    stacks:[
-      { name:'Immediate Family', icon:'👨‍👩‍👧‍👦', cards:[
-        {en:'Mama',    gu:'Mammi',  tr:'Mammi',  emoji:'👩🏽'},
-        {en:'Papa',    gu:'Pappa',  tr:'Pappa',  emoji:'👨🏽'},
-        {en:'Brother', gu:'Bhai',   tr:'Bhai',   emoji:'👦🏽'},
-        {en:'Sister',  gu:'Bahen',  tr:'Bahen',  emoji:'👧🏽'},
-        {en:'Baby',    gu:'Baal',   tr:'Baal',   emoji:'👶🏽'},
-      ]},
-      { name:'Grandparents', icon:'👴🏽', cards:[
-        {en:'Nana (grandpa)', gu:'Naanaa',  tr:'Naanaa',  emoji:'👴🏽'},
-        {en:'Nani (grandma)', gu:'Naani',   tr:'Naani',   emoji:'👵🏽'},
-        {en:'Dada (grandpa)', gu:'Daadaa',  tr:'Daadaa',  emoji:'👴🏽'},
-        {en:'Dadi (grandma)', gu:'Daadi',   tr:'Daadi',   emoji:'👵🏽'},
-        {en:'Family',         gu:'Parivaar',tr:'Parivaar',emoji:'👨‍👩‍👧‍👦'},
-      ]},
-      { name:'Extended Family', icon:'🧔🏽', cards:[
-        {en:'Mama (uncle)', gu:'Maama', tr:'Maama', emoji:'🧔🏽'},
-        {en:'Mami (aunt)',  gu:'Maami', tr:'Maami', emoji:'👩🏽'},
-        {en:'Kaka (uncle)', gu:'Kaaka', tr:'Kaaka', emoji:'👨🏽'},
-        {en:'Kaki (aunt)',  gu:'Kaaki', tr:'Kaaki', emoji:'🧕🏽'},
-        {en:'Friend',       gu:'Mitra', tr:'Mitra', emoji:'🤝'},
-      ]},
-    ]
-  }
-};
+// ══ FLASHCARD REFERENCE ══
+let CONTENT = {};
+
+async function loadContent() {
+  const res = await fetch(CARDS_ENDPOINT, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const rows = await res.json();
+
+  rows.forEach(row => {
+    if (!CONTENT[row.topic]) {
+      CONTENT[row.topic] = {
+        label: row.topic_en,
+        icon: '',
+        topic_tr: row.topic_tr,
+        topic_gu: row.topic_gu,
+        stacks: []
+      };
+    }
+    const topic = CONTENT[row.topic];
+    if (!topic.stacks[row.stack_index]) {
+      topic.stacks[row.stack_index] = { name: '', cards: [] };
+    }
+    topic.stacks[row.stack_index].cards[row.card_index] = {
+      en: row.en, gu: row.gu, tr: row.tr, emoji: row.emoji
+    };
+  });
+
+  // Set stack and topic icons from first card emoji
+  Object.values(CONTENT).forEach(topic => {
+    topic.stacks.forEach(stack => {
+      if (stack && stack.cards[0]) stack.icon = stack.cards[0].emoji;
+    });
+    if (topic.stacks[0]?.cards[0]) topic.icon = topic.stacks[0].cards[0].emoji;
+  });
+}
 
 // Gujarati + English praise pairs
 const PRAISE_PAIRS = [
@@ -632,9 +567,10 @@ let state = {
   totalStars:      parseInt(localStorage.getItem('babu-stars')    || '0'),
 };
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadContent();
   document.getElementById('toggle-script').checked = state.showScript;
-  updateHomeProgress();
+  renderTopicCards();
   initSwipe();
 });
 
@@ -823,48 +759,38 @@ function applyScriptToggle() {
   state.showScript ? guEl.classList.add('visible') : guEl.classList.remove('visible');
 }
 
-// ══ AUDIO (ELEVENLABS) ══
+// ══ AUDIO (SARVAM) ══
 let currentAudio = null;
 function playNormal() { playCard(1.0); }
 function playSlow()   { playCard(0.72); }
 function playCard(rate) {
   const card = CONTENT[state.topic].stacks[state.stackIdx].cards[state.cardIdx];
-  speakText(card.tr, rate);
+  speakText(card.gu, rate);
 }
 
-async function speakText(text, rate = 1.0, pitch = 1.0) {
+async function speakText(text, rate = 1.0) {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   try {
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': EL_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text,
-          model_id: EL_MODEL,
-          voice_settings: {
-            stability: 0.6,
-            similarity_boost: 0.85,
-            style: 0.4,
-            use_speaker_boost: true,
-          },
-        }),
-      }
-    );
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.playbackRate = rate;   // 1.0 normal, 0.75 slow
-    audio.play();
-    audio.onended = () => URL.revokeObjectURL(url); // cleanup
+    const res = await fetch(TTS_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    const base64 = data.audios[0];
+    const binary = atob(base64);
+    const bytes  = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob   = new Blob([bytes], { type: 'audio/mpeg' });
+    const url    = URL.createObjectURL(blob);
+    currentAudio = new Audio(url);
+    currentAudio.playbackRate = rate;
+    currentAudio.play();
+    currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null; };
   } catch (err) {
-    console.warn('ElevenLabs fallback:', err);
-    // graceful fallback to Web Speech if EL fails
+    console.warn('Sarvam fallback:', err);
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US'; u.rate = rate; u.pitch = 1.3;
+    u.lang = 'gu-IN'; u.rate = rate;
     window.speechSynthesis.speak(u);
   }
 }
@@ -1054,14 +980,53 @@ function spawnConfetti() {
 
 function playAgain() { startStack(state.topic, state.stackIdx); }
 
+const TOPIC_CONFIG = {
+  fruits:    { emoji: '🍎' },
+  colors:    { emoji: '🎨' },
+  family:    { emoji: '🧒🏽' },
+  numbers:   { emoji: '🔢' },
+  bodyparts: { emoji: '🫀' },
+  emotions:  { emoji: '😊' },
+};
+
+function renderTopicCards() {
+  const grid = document.getElementById('topics-grid-dynamic');
+  if (!grid) return;
+  grid.innerHTML = '';
+  Object.entries(CONTENT).forEach(([key, topic]) => {
+    const cfg        = TOPIC_CONFIG[key] || { emoji: '📚' };
+    const totalStacks = topic.stacks.length;
+    const totalWords  = topic.stacks.reduce((a, s) => a + (s?.cards?.length || 0), 0);
+    const trLabel     = state.showScript ? topic.topic_gu : topic.topic_tr;
+    const btn = document.createElement('button');
+    btn.className = `topic-card ${key}`;
+    btn.setAttribute('role', 'listitem');
+    btn.onclick = () => selectTopic(key);
+    btn.innerHTML = `
+      <span class="topic-emoji">${cfg.emoji}</span>
+      <div class="topic-info">
+        <div class="topic-name">${topic.label}</div>
+        <div class="topic-tr" id="topic-tr-${key}">${trLabel}</div>
+        <div class="topic-sub">${totalStacks} stacks · ${totalWords} words</div>
+      </div>
+      <div class="topic-stars" id="stars-${key}">${'☆'.repeat(totalStacks)}</div>
+      <div class="topic-progress-bar"><div class="topic-progress-fill" id="prog-${key}" style="width:0%"></div></div>
+    `;
+    grid.appendChild(btn);
+  });
+  updateHomeProgress();
+}
+
 function updateHomeProgress() {
-  ['fruits','colors','family'].forEach(key => {
+  Object.keys(CONTENT).forEach(key => {
     const total = CONTENT[key].stacks.length;
     const done  = CONTENT[key].stacks.filter((_,i) => !!state.completedStacks[key+'-'+i]).length;
     const prog  = document.getElementById('prog-'  + key);
     const stars = document.getElementById('stars-' + key);
+    const trEl  = document.getElementById('topic-tr-' + key);
     if (prog)  prog.style.width  = (done / total * 100) + '%';
-    if (stars) stars.textContent = done === total ? '⭐⭐⭐' : done > 0 ? '⭐' + '☆'.repeat(total - done) : '☆☆☆';
+    if (stars) stars.textContent = done === total ? '⭐'.repeat(total) : done > 0 ? '⭐'.repeat(done) + '☆'.repeat(total - done) : '☆'.repeat(total);
+    if (trEl)  trEl.textContent  = state.showScript ? CONTENT[key].topic_gu : CONTENT[key].topic_tr;
   });
   document.getElementById('star-count').textContent = state.totalStars;
 }
