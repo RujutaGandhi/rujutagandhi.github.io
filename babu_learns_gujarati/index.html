@@ -99,7 +99,7 @@ body {
 .topic-sub   { font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.85); margin-top: 2px; }
 .topic-card.family .topic-sub { color: rgba(92,61,0,0.7); }
 .topic-card.family .topic-tr   { color: rgba(92,61,0,0.6); }
-.topic-info  { flex: 1; }
+#topics-grid-dynamic { width: 100%; display: flex; flex-direction: column; gap: 12px; }
 .topic-stars { display: flex; gap: 3px; font-size: 18px; }
 .topic-progress-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 5px; background: rgba(255,255,255,0.2); }
 .topic-progress-fill { height: 100%; background: rgba(255,255,255,0.8); border-radius: 0 4px 4px 0; transition: width 0.5s; }
@@ -162,7 +162,7 @@ body.theme-family #screen-quiz,   body.theme-family #screen-reward {
 .stack-lock  { font-size: 28px; }
 
 /* ═══ FLASHCARD — picture only, swipe ═══ */
-#screen-card { align-items: center; padding-bottom: 40px; }
+#screen-card { align-items: center; padding-bottom: 40px; background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%); }
 
 .progress-dots { display: flex; gap: 8px; flex: 1; justify-content: center; }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: all 0.3s; }
@@ -241,17 +241,20 @@ body.theme-family #screen-quiz,   body.theme-family #screen-reward {
   display: flex; gap: 10px; justify-content: center; margin-top: 16px; width: 100%;
 }
 .audio-btn {
-  display: flex; align-items: center; gap: 7px; padding: 11px 20px;
-  border-radius: 100px; background: rgba(255,255,255,0.9);
+  display: flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(255,255,255,0.9);
   border: 2px solid rgba(255,255,255,0.4); cursor: pointer;
-  font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.88rem; color: var(--ink);
+  font-size: 1.6rem; color: var(--ink);
   transition: all 0.2s; box-shadow: 0 3px 12px rgba(0,0,0,0.12);
   -webkit-tap-highlight-color: transparent;
 }
-.audio-btn:hover { transform: scale(1.05); background: white; }
+#gotit-btn { background: rgba(46,204,113,0.9); color: white; font-size: 1.8rem; font-weight: 900; }
+#again-btn { background: rgba(255,107,53,0.9); color: white; }
+.audio-btn:hover { transform: scale(1.08); }
 
 /* ═══ QUIZ ═══ */
-#screen-quiz { align-items: center; padding-bottom: 32px; }
+#screen-quiz { align-items: center; padding-bottom: 32px; background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%); }
 .quiz-body { width: 100%; max-width: 460px; padding: 0 20px 20px; align-self: center; flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
 .quiz-badge {
@@ -435,12 +438,6 @@ body.theme-family #screen-quiz,   body.theme-family #screen-reward {
     <div class="progress-dots" id="progress-dots"></div>
   </div>
 
-  <!-- Swipe direction hints -->
-  <div class="swipe-hints">
-    <div class="swipe-hint">← Again</div>
-    <div class="swipe-hint">Got it! →</div>
-  </div>
-
   <!-- Swipeable card — picture only -->
   <div class="card-swipe-wrapper" id="card-swipe-wrapper">
     <div class="flashcard-simple" id="flashcard-simple">
@@ -453,9 +450,10 @@ body.theme-family #screen-quiz,   body.theme-family #screen-reward {
     </div>
   </div>
 
-  <div class="audio-row">
-    <button class="audio-btn" id="play-btn" onclick="playNormal()" aria-label="Hear word">🔊 Hear Babu</button>
-    <button class="audio-btn" id="slow-btn" onclick="playSlow()"   aria-label="Hear slowly">🐢 Slow</button>
+<div class="audio-row">
+    <button class="audio-btn" id="again-btn" onclick="markReview()" aria-label="Hear again">🔄</button>
+    <button class="audio-btn" id="play-btn"  onclick="playNormal()" aria-label="Hear word">🔊</button>
+    <button class="audio-btn" id="gotit-btn" onclick="markLearned()" aria-label="Got it">✓</button>
   </div>
 </section>
 
@@ -822,7 +820,7 @@ function buildLocalQuiz() {
       .sort(() => Math.random() - 0.5)
       .slice(0, 3);
     const options = [card, ...distractors].sort(() => Math.random() - 0.5);
-    return { word: card.tr, wordEn: card.en, correctEn: card.en, options };
+    return { word: card.gu, wordEn: card.en, correctEn: card.en, options };
   });
 }
 
@@ -881,7 +879,7 @@ function selectAnswer(btn, chosen, correct, word) {
     animateBabu('jump');
     const praise = PRAISE_PAIRS[Math.floor(Math.random() * PRAISE_PAIRS.length)];
     speakText(praise.spoken + '! ' + word, 1.1, 1.5);
-    setTimeout(() => document.getElementById('quiz-next-btn').classList.add('visible'), 600);
+    setTimeout(() => document.getElementById('quiz-next-btn').classList.add('visible'), 2000);
   } else {
     btn.classList.add('wrong');
     btn.disabled = true;
@@ -908,6 +906,8 @@ function selectAnswer(btn, chosen, correct, word) {
 }
 
 function nextQuestion() {
+  // Stop any current audio before moving on
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   state.quizIdx++;
   if (state.quizIdx < state.quizQuestions.length) {
     renderQuestion();
@@ -978,7 +978,7 @@ function spawnConfetti() {
   }
 }
 
-function playAgain() { startStack(state.topic, state.stackIdx); }
+function playAgain() { startQuiz(); }
 
 const TOPIC_CONFIG = {
   fruits:    { emoji: '🍎' },
