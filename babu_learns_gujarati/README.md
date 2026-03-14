@@ -3,7 +3,7 @@
 > A conversation-first Gujarati language learning app for Indian-American kids aged 3–10.  
 > Built by Rujuta Gandhi · WhIndian Creations · 2026
 
-**[Try it live →](https://rujutagandhi.github.io/gujarati_app/)**
+**[Try it live →](https://rujutagandhi.github.io/babu_learns_gujarati/)**
 
 ---
 
@@ -11,9 +11,38 @@
 
 Babu Learns Gujarati teaches diaspora children Gujarati vocabulary through picture flashcards, voice audio, and emoji-based quizzes. The core design constraint: **zero reading ability required**. Everything is driven by pictures, Babu's voice, and swipe gestures.
 
-For V1, the app is a single HTML file deployed on GitHub Pages — no backend, no build step, no cold starts.
+Inspired by my own story: I want my toddlers to learn Gujarati in a fun and interactive way. There are no Gujarati schools nearby, and grandparent exposure is not enough.
 
-Inspired by my own story: I want my toddlers to learn Gujarati in a fun and interactive way. There are no Gujarati school nearby, and grandparent exposure is not enough. 
+---
+
+## What's New in V2.1
+
+### TTS — Switched from ElevenLabs to Sarvam Bulbul v3
+The app now uses Sarvam's Bulbul v3 model (`gu-IN`) for text-to-speech. Unlike ElevenLabs which was receiving romanized text (e.g. "Safarjan"), Sarvam receives native Gujarati script (e.g. "સફરજન") and produces authentic Gujarati pronunciation. This is a meaningful improvement for diaspora children learning to hear the language correctly.
+
+### Backend — Supabase Edge Functions (no keys in the browser)
+V1 exposed the ElevenLabs API key directly in the HTML. V2.1 introduces two Supabase Edge Functions as a backend proxy:
+- **`get-cards`** — fetches all flashcard content from Supabase using an internal service role key
+- **`tts-proxy`** — forwards TTS requests to Sarvam using an internal API key
+
+No credentials are exposed in the browser. The app only knows two endpoint URLs.
+
+### Content — Supabase database replaces hardcoded JS
+All 95 flashcards now live in a Supabase `flashcards` table with Row Level Security enabled. The app fetches cards dynamically on load. New words can be added through the Supabase dashboard without touching code.
+
+### New Topics — 3 additional topics added
+- **Numbers** — 1 through 20, 4 stacks of 5 cards, digit characters as visuals
+- **Body Parts** — 15 kid-appropriate words across 3 stacks (eyes, ears, nose, mouth, hands, feet, hair, teeth, arm, leg, brain, bone, heart, fingers, back)
+- **Emotions** — 15 words across 3 stacks (happy, sad, angry, scared, tired, laughing, surprised, loving, calm, sick, embarrassed, excited, disappointed, loved, frustrated)
+
+### UI Changes
+- Topic cards now show Gujarati transliteration below the English name (e.g. "Fal" under "Fruits"); Gujarati script shown if script toggle is on
+- Replaced "Hear Babu" and "Slow" buttons with three round action buttons: 🔄 (review again), 🔊 (replay word), ✓ (got it)
+- Removed swipe hint arrows from the card screen — swipe gestures still work
+- Card and quiz screens now use the jungle green background for visual consistency
+- Fixed quiz praise timing — Next button now appears after Babu finishes speaking
+- Fixed Play Again — now restarts the quiz instead of going back to flashcards
+- Fixed quiz audio — now sends Gujarati script to Sarvam instead of romanized text
 
 ---
 
@@ -33,17 +62,20 @@ Inspired by my own story: I want my toddlers to learn Gujarati in a fun and inte
 - **Flag cards** for bad translations
 - Graceful fallback to Web Speech API if ElevenLabs is unavailable
 
-### Tech Stack
+---
 
-| Layer | Technology |
-|---|---|
-| Frontend | Vanilla HTML / CSS / JS — single file, no build step |
-| Hosting | GitHub Pages (always-on, zero cold start) |
-| TTS | ElevenLabs `eleven_multilingual_v2` with custom voice |
-| TTS Fallback | Web Speech API (en-US) |
-| Quiz | Local JS — same-stack distractors only, no API needed |
-| Storage | localStorage (stars, completed stacks, flags, script toggle) |
-| Content | 45 cards inline in JS — instant load, no network fetch |
+## Tech Stack
+
+| Layer | V1 | V2.1 |
+|---|---|---|
+| Frontend | Vanilla HTML / CSS / JS — single file | Same |
+| Hosting | GitHub Pages | Same |
+| TTS | ElevenLabs `eleven_multilingual_v2` | Sarvam Bulbul v3 (`gu-IN`) |
+| TTS input | Romanized text (e.g. "Safarjan") | Gujarati script (e.g. "સફરજન") |
+| TTS fallback | Web Speech API (en-US) | Web Speech API (gu-IN) |
+| Backend | None — keys in HTML | Supabase Edge Functions |
+| Content | 45 cards hardcoded in JS | 95 cards in Supabase database |
+| Storage | localStorage | localStorage |
 
 ---
 
@@ -59,35 +91,33 @@ Inspired by my own story: I want my toddlers to learn Gujarati in a fun and inte
 
 **Praise should be heard, not read.** Text praise at the bottom added noise without value for a non-reader. Babu speaking the praise aloud is more impactful and keeps the screen clean.
 
-**Stars = words, not quality score.** Originally 1–3 stars for quiz performance. Changed to 1 star per word learned (5 words = 5 stars) — concrete and genuinely rewarding to a child.
+**Stars = words, not quality score.** Originally 1-3 stars for quiz performance. Changed to 1 star per word learned (5 words = 5 stars) — concrete and genuinely rewarding to a child.
 
-**No duplicate stars.** Once a stack is complete, replaying it should not inflate the star count. A simple `alreadyDone` flag in localStorage solved this cleanly.
+**No duplicate stars.** Once a stack is complete, replaying it should not inflate the star count. A simple alreadyDone flag in localStorage solved this cleanly.
 
-**Stack icon should reflect content.** Using `stack.cards[0].emoji` as the stack icon (🍎 for Everyday Fruits, 🥥 for Tropical) is more informative than a generic placeholder.
+**Send native script to TTS, not romanization.** ElevenLabs was receiving "Safarjan" and guessing pronunciation. Sarvam receives "સફરજન" and knows exactly how to say it. The quality difference is significant.
+
+**Backend proxies protect API keys without a full server.** Supabase Edge Functions are lightweight Deno functions — no cold start problem, no server to maintain, free tier sufficient for V2.1. The Sarvam key and Supabase service key never leave the server.
 
 ### Technical Decisions
 
-**ElevenLabs over Sarvam for V1.** ElevenLabs has no native Gujarati voice, but `eleven_multilingual_v2` handles romanized Gujarati (Safarjan, Kelun, Keri) reasonably well with a custom voice. Sarvam is the right long-term upgrade (true Gujarati phonemes), but ElevenLabs gets V1 to market faster.
+**Sarvam Bulbul v3 over ElevenLabs for V2.1.** Bulbul v3 is trained on Indian languages and handles Gujarati script natively. ElevenLabs required romanized input and produced a non-Gujarati accent. The switch was the single most impactful quality improvement in V2.1.
 
-**API key exposure is acceptable at demo scale.** A static HTML file cannot read `.env` files — the key must be in the JS. Mitigated by setting a monthly character cap in the ElevenLabs dashboard. Pre-generating all 45 MP3s is the V2 fix: no key ships to the browser at all.
+**Supabase Edge Functions as the backend proxy.** No separate server needed — the Edge Functions live inside the existing Supabase project. Two functions handle everything: one for fetching cards, one for proxying TTS. Secrets are stored as Supabase environment variables and never exposed to the browser.
 
-**`async/await` for audio.** The ElevenLabs call is async — the browser waits for the network response before playing. The fallback to Web Speech API ensures the app works even without a valid key.
+**RLS on with a public read policy.** The flashcards table has Row Level Security enabled with a single SELECT policy for all users. The anon key cannot write, delete, or access any other table. The service role key (used inside the Edge Function) has full access but never reaches the browser.
 
-**Single-file architecture.** The entire app is one HTML file. No bundler, no npm, no server. GitHub Pages deployment is a single `git push`, and there's zero infrastructure to maintain for V1.
+**Flashcard content in Supabase, not hardcoded JS.** Moving from 45 hardcoded cards to 95 database rows was the right call for a portfolio piece. New words can be added through the Supabase dashboard. The table schema supports all 6 topics dynamically.
 
-**localStorage for all state.** No auth, no database in V1. Progress, stars, flags, and the script toggle all persist in the browser. Sufficient for a single-device child app.
+**Topic card UI generated dynamically.** renderTopicCards() loops over whatever topics come back from Supabase. Adding a new topic to the database automatically creates a new card on the home screen. The only hardcoded part is TOPIC_CONFIG — the emoji and gradient for each topic key — which is a deliberate UI design decision, not content.
 
 ### Design Decisions
 
-**Jungle home screen** (dark green gradient + floating monkey) creates an immersive, branded feel that differentiates from generic language apps.
+**Jungle green background on all screens.** Extending the dark green gradient to the card and quiz screens creates a consistent, immersive jungle feel. The light cream background on quiz screens was causing white text to be invisible — the fix also improved brand consistency.
 
-**Baloo 2 font** for display text — it has Indian design DNA and renders Indic character sets naturally.
+**Round icon buttons replace labeled audio buttons.** The 🔄 🔊 ✓ button row is more intuitive for children than "Hear Babu" and "Slow" text labels. The colors reinforce meaning: orange for review, green for learned.
 
-**Brown skin tone emojis** (🧒🏽, 👩🏽, 👦🏽) throughout the Family topic — representation matters for diaspora children.
-
-**Gujarati praise first on reward screen** — Gujarati comes before English to reinforce that it is the primary language, not a novelty.
-
-**Locked stacks show only 🔒** — no text explanation needed. Young children understand visual locks.
+**Topic name translation below English label.** Showing "Fal" under "Fruits" on the home screen gives children and parents immediate cultural context. Switching to Gujarati script mode shows "ફળ" instead — consistent with the script toggle behavior throughout the app.
 
 ---
 
@@ -95,18 +125,23 @@ Inspired by my own story: I want my toddlers to learn Gujarati in a fun and inte
 
 | Version | Focus | Key Features |
 |---|---|---|
-| **V1 ✅** | MVP — Static web | 45 cards, ElevenLabs TTS, picture quiz, swipe, GitHub Pages |
-| **V2** | Pronunciation + Expansion | Sarvam STT feedback, 3 new topics, streaks, pre-generated MP3s |
+| **V1** | MVP — Static web | 45 cards, ElevenLabs TTS, picture quiz, swipe, GitHub Pages |
+| **V2.1** | Backend + Sarvam TTS | Sarvam Bulbul v3, Supabase Edge Functions, 95 cards, 3 new topics |
+| **V2.2** | Caching + Performance | localStorage cache with version check, faster load times |
+| **V2.3** | Pronunciation Feedback | Sarvam STT — child speaks word, app responds |
 | **V2.5** | iOS App Store | Capacitor wrapper, App Store submission |
-| **V3** | Backend + Auth | Supabase, parent dashboard, cross-device sync |
+| **V3** | Auth + Parent Dashboard | Supabase user accounts, cross-device sync, parent dashboard |
 | **V3.5** | Monetization | In-app purchases, story mode, merchandise |
 
-### V2 Detail
-- Pronunciation feedback: child says the word, Sarvam STT scores it
-- 3 new vocabulary topics (Animals, Body Parts, Food)
-- Streak counter for daily practice motivation
-- Audition Indic Parler-TTS (ai4bharat) as open-source alternative to ElevenLabs
-- Pre-generate all audio as static MP3s — no API key in the browser
+### V2.2 — Caching
+- Cache flashcard content in localStorage after first load
+- Version number stored in Supabase — app checks version on load and only re-fetches if content has changed
+- First load slow, every subsequent load instant
+
+### V2.3 — Pronunciation Feedback
+- Child taps microphone button and speaks the word
+- Sarvam STT scores pronunciation
+- Babu responds with encouragement or gentle correction
 
 ### V2.5 — iOS
 - Capacitor wrapper to package the web app as a native iOS app
@@ -114,17 +149,20 @@ Inspired by my own story: I want my toddlers to learn Gujarati in a fun and inte
 - Target: Apple App Store submission
 
 ### V3 — Backend
-- Supabase for user accounts and cross-device progress sync
+- Supabase user accounts and cross-device progress sync
 - Parent dashboard: view child progress, flagged cards, starred words
 - Babu's Wisdom Corner: Gujarati proverbs with audio and cultural context
 - Community flag review: crowdsourced translation quality control
+- Move TOPIC_CONFIG (emoji, gradient) to a topics table in Supabase — nothing hardcoded
 - Android support
 
 ---
 
 ## Running Locally
 
-No build step needed. Just open `index.html` in a browser.
+No build step needed. Just open index.html in a browser.
+
+Note: the app fetches cards and audio from Supabase Edge Functions. These work from any origin in a local browser — no local server needed.
 
 ---
 
