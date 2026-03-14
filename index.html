@@ -656,64 +656,66 @@
     <div class="modal-header">
       <div>
         <div class="modal-icon">🐒</div>
-        <div class="modal-title">Babu Learns Gujarati V1</div>
-        <div class="modal-subtitle">Gujarati Language App for Kids · ElevenLabs · GitHub Pages</div>
+        <div class="modal-title">Babu Learns Gujarati</div>
+        <div class="modal-subtitle">Gujarati Language App for Kids · Sarvam Bulbul v3 · Supabase · GitHub Pages</div>
       </div>
       <button class="modal-close" onclick="closeModalById('modal-overlay-babu')">✕</button>
     </div>
     <div class="modal-body">
- 
+
       <div class="modal-section">
         <div class="modal-section-label">The Problem</div>
         <p>Over 1.5 million Gujarati-Americans live in the US. Most diaspora children hear Gujarati at home but have no engaging, age-appropriate tool to learn it actively. Existing apps like Duolingo weren't built for Indic languages or pre-readers. Parents want their kids to connect with their heritage — but there was no Babu for Gujarati.</p>
       </div>
- 
+
       <div class="modal-section">
         <div class="modal-section-label">What I Built</div>
-        <p>A mobile-first, single-file web app designed for children who cannot yet read. Babu (a cartoon monkey) speaks every word aloud via a custom ElevenLabs voice. Children swipe right for "Got it" and left for "Again" on picture-only flashcards. The quiz shows a 2×2 emoji grid — Babu says a word, the child taps the matching picture. No text, no buttons, no friction.</p>
+        <p>A mobile-first web app for children who cannot yet read. Babu (a cartoon monkey) speaks every word aloud in authentic Gujarati using Sarvam Bulbul v3 — a model trained on Indic languages. Children swipe right for "Got it" and left for "Again" on picture-only flashcards, then take a picture-choice quiz. 95 words across 6 topics. No text on cards, no buttons, no friction.</p>
       </div>
- 
+
       <div class="modal-section">
         <div class="modal-section-label">Key Product Decisions</div>
         <ul>
-          <li>Removed all on-card text — the card is just a picture. Babu says everything. Dramatically reduced cognitive load for pre-readers.</li>
+          <li>Switched from ElevenLabs to Sarvam Bulbul v3 in V2.1 — sends native Gujarati script (સફરજન) instead of romanized text (Safarjan), producing authentic pronunciation instead of an anglicized accent.</li>
+          <li>Moved all API keys to Supabase Edge Functions — nothing sensitive is exposed in the browser. The app calls two proxy endpoints; the backend holds all credentials.</li>
+          <li>Flashcard content migrated from hardcoded JS to a Supabase database table — new words can be added without touching code.</li>
           <li>Swipe gesture replaces Got it / Again buttons — instinctive for touchscreen-native children.</li>
-          <li>Stars = words learned (1 per word, no quality score). localStorage flag prevents duplicate stars on replay.</li>
           <li>Quiz distractors sourced from the same stack only — a fruits quiz never shows a color or family emoji.</li>
-          <li>Two-strike wrong answer rule: encourage on first miss, reveal the correct answer on second — prevents children from getting stuck.</li>
-          <li>Babu animates: jumps on correct, flips on wrong — replaces text feedback entirely. May review design again in V2.</li>
-          <li>Gujarati praise appears first on the reward screen, English below — reinforces Gujarati as the primary language.</li>
-          <li>ElevenLabs <code>eleven_multilingual_v2</code> chosen over Sarvam for V1 given voice customization. However, the ElevenLabs voice is not pronouncing words properly. Sarvam will have to be used in V2 even if it's not kid friendly because it's more authentic.</li>
+          <li>Two-strike wrong answer rule: encourage on first miss, reveal the correct answer on second.</li>
+          <li>Praise timing fixed — Next button only appears after Babu finishes speaking the congratulations.</li>
+          <li>Topic cards show Gujarati transliteration below the English name — toggling the script switch shows native script instead.</li>
         </ul>
       </div>
- 
+
       <div class="modal-section">
         <div class="modal-section-label">Tech Stack</div>
         <div class="modal-tech">
-          <span>ElevenLabs TTS</span>
-          <span>eleven_multilingual_v2</span>
+          <span>Sarvam Bulbul v3</span>
+          <span>ElevenLabs (V1)</span>
+          <span>Supabase pgvector</span>
+          <span>Supabase Edge Functions</span>
           <span>Vanilla JS</span>
           <span>GitHub Pages</span>
-          <span>localStorage</span>
           <span>Web Speech API (fallback)</span>
           <span>CSS Swipe Gestures</span>
         </div>
       </div>
- 
+
       <div class="modal-section">
         <div class="modal-section-label">What's Next</div>
         <ul>
-          <li><strong>V2:</strong> Pronunciation feedback via Sarvam STT, 3 new vocabulary topics, pre-generated MP3s so no API key ships to the browser</li>
+          <li><strong>V2.2:</strong> localStorage caching with version check — fast loads after first visit</li>
+          <li><strong>V2.3:</strong> Pronunciation feedback via Sarvam STT — child speaks the word, Babu responds</li>
           <li><strong>V2.5:</strong> iOS App Store via Capacitor wrapper</li>
-          <li><strong>V3:</strong> Supabase backend, parent dashboard, cross-device progress sync</li>
+          <li><strong>V3:</strong> Parent dashboard, cross-device sync, community flag review</li>
         </ul>
       </div>
- 
+
       <div class="modal-actions">
-        <a href="https://rujutagandhi.github.io/gujarati_app/" target="_blank" class="modal-btn-primary">Try it live →</a>
-        <a href="https://github.com/RujutaGandhi/gujarati_app/blob/main/README.md" target="_blank" class="modal-btn-ghost">View README</a>
+        <a href="https://rujutagandhi.github.io/babu_learns_gujarati/" target="_blank" class="modal-btn-primary">Try it live →</a>
+        <a href="https://github.com/RujutaGandhi/rujutagandhi.github.io/blob/main/babu_learns_gujarati/README.md" target="_blank" class="modal-btn-ghost">View README</a>
       </div>
- 
+
     </div>
   </div>
 </div>
