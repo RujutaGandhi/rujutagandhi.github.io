@@ -1,1 +1,477 @@
-{}
+{
+  "family_0_0": {
+    "gu": "મમ્મી",
+    "en": "Mama",
+    "generated": "2026-03-16T18:56:02.569Z"
+  },
+  "bodyparts_0_0": {
+    "gu": "આંખ",
+    "en": "Eye",
+    "generated": "2026-03-16T18:56:04.648Z"
+  },
+  "emotions_0_0": {
+    "gu": "ખુશ",
+    "en": "Happy",
+    "generated": "2026-03-16T18:56:06.602Z"
+  },
+  "colors_0_0": {
+    "gu": "લાલ",
+    "en": "Red",
+    "generated": "2026-03-16T18:56:08.604Z"
+  },
+  "numbers_0_0": {
+    "gu": "એક",
+    "en": "One",
+    "generated": "2026-03-16T18:56:10.847Z"
+  },
+  "fruits_0_0": {
+    "gu": "સફરજન",
+    "en": "Apple",
+    "generated": "2026-03-16T18:56:13.386Z"
+  },
+  "fruits_0_1": {
+    "gu": "કેળું",
+    "en": "Banana",
+    "generated": "2026-03-16T18:56:15.713Z"
+  },
+  "emotions_0_1": {
+    "gu": "ઉદાસ",
+    "en": "Sad",
+    "generated": "2026-03-16T18:56:18.021Z"
+  },
+  "bodyparts_0_1": {
+    "gu": "કાન",
+    "en": "Ear",
+    "generated": "2026-03-16T18:56:20.273Z"
+  },
+  "colors_0_1": {
+    "gu": "ભૂરો",
+    "en": "Blue",
+    "generated": "2026-03-16T18:56:22.858Z"
+  },
+  "numbers_0_1": {
+    "gu": "બે",
+    "en": "Two",
+    "generated": "2026-03-16T18:56:25.216Z"
+  },
+  "family_0_1": {
+    "gu": "પપ્પા",
+    "en": "Papa",
+    "generated": "2026-03-16T18:56:27.561Z"
+  },
+  "fruits_0_2": {
+    "gu": "કેરી",
+    "en": "Mango",
+    "generated": "2026-03-16T18:56:30.083Z"
+  },
+  "emotions_0_2": {
+    "gu": "ગુસ્સો",
+    "en": "Angry",
+    "generated": "2026-03-16T18:56:32.489Z"
+  },
+  "family_0_2": {
+    "gu": "ભાઈ",
+    "en": "Brother",
+    "generated": "2026-03-16T18:56:34.903Z"
+  },
+  "colors_0_2": {
+    "gu": "પીળો",
+    "en": "Yellow",
+    "generated": "2026-03-16T18:56:36.908Z"
+  },
+  "numbers_0_2": {
+    "gu": "ત્રણ",
+    "en": "Three",
+    "generated": "2026-03-16T18:56:38.828Z"
+  },
+  "bodyparts_0_2": {
+    "gu": "નાક",
+    "en": "Nose",
+    "generated": "2026-03-16T18:56:41.164Z"
+  },
+  "colors_0_3": {
+    "gu": "લીલો",
+    "en": "Green",
+    "generated": "2026-03-16T18:56:43.476Z"
+  },
+  "fruits_0_3": {
+    "gu": "નારંગી",
+    "en": "Orange",
+    "generated": "2026-03-16T18:56:44.980Z"
+  },
+  "numbers_0_3": {
+    "gu": "ચાર",
+    "en": "Four",
+    "generated": "2026-03-16T18:56:46.972Z"
+  },
+  "emotions_0_3": {
+    "gu": "ડર",
+    "en": "Scared",
+    "generated": "2026-03-16T18:56:49.011Z"
+  },
+  "family_0_3": {
+    "gu": "બહેન",
+    "en": "Sister",
+    "generated": "2026-03-16T18:56:51.026Z"
+  },
+  "bodyparts_0_3": {
+    "gu": "મોઢું",
+    "en": "Mouth",
+    "generated": "2026-03-16T18:56:53.333Z"
+  },
+  "numbers_0_4": {
+    "gu": "પાંચ",
+    "en": "Five",
+    "generated": "2026-03-16T18:56:55.653Z"
+  },
+  "fruits_0_4": {
+    "gu": "દ્રાક્ષ",
+    "en": "Grapes",
+    "generated": "2026-03-16T18:56:58.033Z"
+  },
+  "emotions_0_4": {
+    "gu": "થાકેલો",
+    "en": "Tired",
+    "generated": "2026-03-16T18:56:59.405Z"
+  },
+  "colors_0_4": {
+    "gu": "નારંગી",
+    "en": "Orange",
+    "generated": "2026-03-16T18:57:01.884Z"
+  },
+  "bodyparts_0_4": {
+    "gu": "દાંત",
+    "en": "Teeth",
+    "generated": "2026-03-16T18:57:04.218Z"
+  },
+  "family_0_4": {
+    "gu": "બાળ",
+    "en": "Baby",
+    "generated": "2026-03-16T18:57:06.813Z"
+  },
+  "colors_1_0": {
+    "gu": "જાંબુડી",
+    "en": "Purple",
+    "generated": "2026-03-16T18:57:09.168Z"
+  },
+  "emotions_1_0": {
+    "gu": "હસું",
+    "en": "Laughing",
+    "generated": "2026-03-16T18:57:11.546Z"
+  },
+  "fruits_1_0": {
+    "gu": "નારિયેળ",
+    "en": "Coconut",
+    "generated": "2026-03-16T18:57:14.021Z"
+  },
+  "family_1_0": {
+    "gu": "નાના",
+    "en": "Nana",
+    "generated": "2026-03-16T18:57:16.394Z"
+  },
+  "numbers_1_0": {
+    "gu": "છ",
+    "en": "Six",
+    "generated": "2026-03-16T18:57:18.408Z"
+  },
+  "bodyparts_1_0": {
+    "gu": "હાથ",
+    "en": "Hand",
+    "generated": "2026-03-16T18:57:20.576Z"
+  },
+  "family_1_1": {
+    "gu": "નાની",
+    "en": "Nani",
+    "generated": "2026-03-16T18:57:22.859Z"
+  },
+  "colors_1_1": {
+    "gu": "ગુલાબી",
+    "en": "Pink",
+    "generated": "2026-03-16T18:57:25.164Z"
+  },
+  "bodyparts_1_1": {
+    "gu": "પગ",
+    "en": "Foot",
+    "generated": "2026-03-16T18:57:27.204Z"
+  },
+  "emotions_1_1": {
+    "gu": "નવાઈ",
+    "en": "Surprised",
+    "generated": "2026-03-16T18:57:28.249Z"
+  },
+  "fruits_1_1": {
+    "gu": "તારબૂચ",
+    "en": "Watermelon",
+    "generated": "2026-03-16T18:57:32.525Z"
+  },
+  "numbers_1_1": {
+    "gu": "સાત",
+    "en": "Seven",
+    "generated": "2026-03-16T18:57:34.868Z"
+  },
+  "bodyparts_1_2": {
+    "gu": "બાહુ",
+    "en": "Arm",
+    "generated": "2026-03-16T18:57:37.299Z"
+  },
+  "fruits_1_2": {
+    "gu": "લીંબુ",
+    "en": "Lemon",
+    "generated": "2026-03-16T18:57:39.852Z"
+  },
+  "colors_1_2": {
+    "gu": "સફેદ",
+    "en": "White",
+    "generated": "2026-03-16T18:57:42.511Z"
+  },
+  "family_1_2": {
+    "gu": "દાદા",
+    "en": "Dada",
+    "generated": "2026-03-16T18:57:44.880Z"
+  },
+  "numbers_1_2": {
+    "gu": "આઠ",
+    "en": "Eight",
+    "generated": "2026-03-16T18:57:47.058Z"
+  },
+  "emotions_1_2": {
+    "gu": "પ્રેમ",
+    "en": "Loving",
+    "generated": "2026-03-16T18:57:49.374Z"
+  },
+  "colors_1_3": {
+    "gu": "કાળો",
+    "en": "Black",
+    "generated": "2026-03-16T18:57:51.389Z"
+  },
+  "numbers_1_3": {
+    "gu": "નવ",
+    "en": "Nine",
+    "generated": "2026-03-16T18:57:56.286Z"
+  },
+  "emotions_1_3": {
+    "gu": "શાંત",
+    "en": "Calm",
+    "generated": "2026-03-16T18:57:58.721Z"
+  },
+  "fruits_1_3": {
+    "gu": "અનાનસ",
+    "en": "Pineapple",
+    "generated": "2026-03-16T18:58:00.051Z"
+  },
+  "bodyparts_1_3": {
+    "gu": "ટાંગ",
+    "en": "Leg",
+    "generated": "2026-03-16T18:58:02.117Z"
+  },
+  "family_1_3": {
+    "gu": "દાદી",
+    "en": "Dadi",
+    "generated": "2026-03-16T18:58:04.427Z"
+  },
+  "numbers_1_4": {
+    "gu": "દસ",
+    "en": "Ten",
+    "generated": "2026-03-16T18:58:06.704Z"
+  },
+  "emotions_1_4": {
+    "gu": "બીમાર",
+    "en": "Sick",
+    "generated": "2026-03-16T18:58:09.220Z"
+  },
+  "bodyparts_1_4": {
+    "gu": "દિમાગ",
+    "en": "Brain",
+    "generated": "2026-03-16T18:58:11.535Z"
+  },
+  "fruits_1_4": {
+    "gu": "પપૈયું",
+    "en": "Papaya",
+    "generated": "2026-03-16T18:58:13.952Z"
+  },
+  "colors_1_4": {
+    "gu": "ભૂરો",
+    "en": "Brown",
+    "generated": "2026-03-16T18:58:16.268Z"
+  },
+  "family_1_4": {
+    "gu": "પરિવાર",
+    "en": "Family",
+    "generated": "2026-03-16T18:58:18.259Z"
+  },
+  "fruits_2_0": {
+    "gu": "સ્ટ્રોબેરી",
+    "en": "Strawberry",
+    "generated": "2026-03-16T18:58:20.623Z"
+  },
+  "numbers_2_0": {
+    "gu": "અગિયાર",
+    "en": "Eleven",
+    "generated": "2026-03-16T18:58:23.131Z"
+  },
+  "family_2_0": {
+    "gu": "મામા",
+    "en": "Mama Uncle",
+    "generated": "2026-03-16T18:58:25.761Z"
+  },
+  "emotions_2_0": {
+    "gu": "શરમિંદો",
+    "en": "Embarrassed",
+    "generated": "2026-03-16T18:58:28.196Z"
+  },
+  "bodyparts_2_0": {
+    "gu": "હાડકી",
+    "en": "Bone",
+    "generated": "2026-03-16T18:58:30.499Z"
+  },
+  "colors_2_0": {
+    "gu": "સોનેરી",
+    "en": "Gold",
+    "generated": "2026-03-16T18:58:32.963Z"
+  },
+  "bodyparts_2_1": {
+    "gu": "દિલ",
+    "en": "Heart",
+    "generated": "2026-03-16T18:58:35.023Z"
+  },
+  "family_2_1": {
+    "gu": "મામી",
+    "en": "Mami Aunt",
+    "generated": "2026-03-16T18:58:37.449Z"
+  },
+  "numbers_2_1": {
+    "gu": "બાર",
+    "en": "Twelve",
+    "generated": "2026-03-16T18:58:39.785Z"
+  },
+  "colors_2_1": {
+    "gu": "ચાંદી",
+    "en": "Silver",
+    "generated": "2026-03-16T18:58:42.047Z"
+  },
+  "fruits_2_1": {
+    "gu": "ચેરી",
+    "en": "Cherry",
+    "generated": "2026-03-16T18:58:44.330Z"
+  },
+  "emotions_2_1": {
+    "gu": "જશ્ન",
+    "en": "Excited",
+    "generated": "2026-03-16T18:58:46.729Z"
+  },
+  "bodyparts_2_2": {
+    "gu": "વાળ",
+    "en": "Hair",
+    "generated": "2026-03-16T18:58:48.738Z"
+  },
+  "family_2_2": {
+    "gu": "કાકા",
+    "en": "Kaka Uncle",
+    "generated": "2026-03-16T18:58:50.755Z"
+  },
+  "colors_2_2": {
+    "gu": "આસમાની",
+    "en": "Sky Blue",
+    "generated": "2026-03-16T18:58:53.075Z"
+  },
+  "numbers_2_2": {
+    "gu": "તેર",
+    "en": "Thirteen",
+    "generated": "2026-03-16T18:58:55.302Z"
+  },
+  "fruits_2_2": {
+    "gu": "નાશપાતી",
+    "en": "Pear",
+    "generated": "2026-03-16T18:58:57.977Z"
+  },
+  "emotions_2_2": {
+    "gu": "નિરાશ",
+    "en": "Disappointed",
+    "generated": "2026-03-16T18:59:00.612Z"
+  },
+  "bodyparts_2_3": {
+    "gu": "કમર",
+    "en": "Back",
+    "generated": "2026-03-16T18:59:02.644Z"
+  },
+  "emotions_2_3": {
+    "gu": "પ્યાર",
+    "en": "Loved",
+    "generated": "2026-03-16T18:59:04.637Z"
+  },
+  "numbers_2_3": {
+    "gu": "ચૌદ",
+    "en": "Fourteen",
+    "generated": "2026-03-16T18:59:07.236Z"
+  },
+  "family_2_3": {
+    "gu": "કાકી",
+    "en": "Kaki Aunt",
+    "generated": "2026-03-16T18:59:09.204Z"
+  },
+  "colors_2_3": {
+    "gu": "લીલો",
+    "en": "Leaf Green",
+    "generated": "2026-03-16T18:59:11.508Z"
+  },
+  "fruits_2_3": {
+    "gu": "આડુ",
+    "en": "Peach",
+    "generated": "2026-03-16T18:59:13.501Z"
+  },
+  "family_2_4": {
+    "gu": "મિત્ર",
+    "en": "Friend",
+    "generated": "2026-03-16T18:59:15.701Z"
+  },
+  "bodyparts_2_4": {
+    "gu": "આંગળીઓ",
+    "en": "Fingers",
+    "generated": "2026-03-16T18:59:18.124Z"
+  },
+  "fruits_2_4": {
+    "gu": "જામફળ",
+    "en": "Guava",
+    "generated": "2026-03-16T18:59:20.856Z"
+  },
+  "colors_2_4": {
+    "gu": "ગુલાબી",
+    "en": "Rose Pink",
+    "generated": "2026-03-16T18:59:23.240Z"
+  },
+  "numbers_2_4": {
+    "gu": "પંદર",
+    "en": "Fifteen",
+    "generated": "2026-03-16T18:59:25.705Z"
+  },
+  "emotions_2_4": {
+    "gu": "ઝીદ",
+    "en": "Frustrated",
+    "generated": "2026-03-16T18:59:28.614Z"
+  },
+  "numbers_3_0": {
+    "gu": "સોળ",
+    "en": "Sixteen",
+    "generated": "2026-03-16T18:59:31.004Z"
+  },
+  "numbers_3_1": {
+    "gu": "સત્તર",
+    "en": "Seventeen",
+    "generated": "2026-03-16T18:59:33.553Z"
+  },
+  "numbers_3_2": {
+    "gu": "અઢાર",
+    "en": "Eighteen",
+    "generated": "2026-03-16T18:59:36.086Z"
+  },
+  "numbers_3_3": {
+    "gu": "ઓગણીસ",
+    "en": "Nineteen",
+    "generated": "2026-03-16T18:59:38.347Z"
+  },
+  "numbers_3_4": {
+    "gu": "વીસ",
+    "en": "Twenty",
+    "generated": "2026-03-16T18:59:41.494Z"
+  }
+}
