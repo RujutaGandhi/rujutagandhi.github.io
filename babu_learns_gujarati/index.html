@@ -629,6 +629,7 @@ function startStack(key, idx) {
   state.cardIdx  = 0;
   state.learnedCards = [];
   state.reviewCards  = [];
+  state.inReview     = false;
   renderCard();
   showScreen('card');
   playNormal(); // plays immediately within the user gesture chain
@@ -670,13 +671,29 @@ function renderCard() {
 
 function advanceCard() {
   const stack = CONTENT[state.topic].stacks[state.stackIdx];
+  // If we're in review mode, always pull from reviewCards
+  if (state.inReview) {
+    if (state.reviewCards.length > 0) {
+      state.cardIdx = state.reviewCards.shift();
+      renderCard();
+      setTimeout(playNormal, 350);
+    } else {
+      state.inReview = false;
+      startQuiz();
+    }
+    return;
+  }
+  // Normal forward progression
   if (state.cardIdx < stack.cards.length - 1) {
     state.cardIdx++;
     renderCard();
+    setTimeout(playNormal, 350);
   } else if (state.reviewCards.length > 0) {
-    // Loop through review cards before starting quiz
+    // Switch to review mode
+    state.inReview = true;
     state.cardIdx = state.reviewCards.shift();
     renderCard();
+    setTimeout(playNormal, 350);
   } else {
     startQuiz();
   }
@@ -855,7 +872,8 @@ function buildLocalQuiz() {
       .sort(() => Math.random() - 0.5)
       .slice(0, 3);
     const options = [card, ...distractors].sort(() => Math.random() - 0.5);
-    return { word: card.gu, wordEn: card.en, correctEn: card.en, options };
+    const cardIdx = stack.cards.indexOf(card);
+    return { word: card.gu, wordTr: card.tr, wordEn: card.en, correctEn: card.en, options, cardIdx };
   });
 }
 
@@ -871,7 +889,7 @@ function startQuiz() {
 function renderQuestion(autoPlay = true) {
   const q = state.quizQuestions[state.quizIdx];
   document.getElementById('quiz-badge').textContent = `${state.quizIdx + 1} of ${state.quizQuestions.length}`;
-  document.getElementById('quiz-word').textContent  = q.word;
+  document.getElementById('quiz-word').textContent = state.showScript ? q.word : q.wordTr;
   document.getElementById('quiz-next-btn').classList.remove('visible');
   state.wrongAttempts = 0;
 
@@ -892,7 +910,7 @@ function renderQuestion(autoPlay = true) {
 
   // Only auto-play word if not suppressed (suppressed when coming from nextQuestion after praise)
   if (autoPlay) {
-    speakText(q.word, 1.0, state.topic, state.quizIdx, null);
+    speakText(q.word, 1.0, state.topic, state.stackIdx, q.cardIdx);
   }
 }
 
@@ -914,8 +932,8 @@ function selectAnswer(btn, chosen, correct, word) {
     btn.classList.add('correct');
     state.quizScore++;
     animateBabu('jump');
-    const praise = PRAISE_PAIRS[Math.floor(Math.random() * PRAISE_PAIRS.length)];
-    speakText(praise.spoken + '! ' + word, 1.0);
+ const praise = PRAISE_PAIRS[Math.floor(Math.random() * PRAISE_PAIRS.length)];
+    speakText(praise.spoken + '!', 1.0);
     setTimeout(() => document.getElementById('quiz-next-btn').classList.add('visible'), 1800);
   } else {
     btn.classList.add('wrong');
@@ -951,7 +969,7 @@ function nextQuestion() {
     renderQuestion(false); // don't auto-play yet
     setTimeout(() => {
       const q = state.quizQuestions[state.quizIdx];
-      speakText(q.word, 1.0, state.topic, state.quizIdx, null);
+      speakText(q.word, 1.0, state.topic, state.stackIdx, q.cardIdx);
     }, 300); // short pause then speak new word
   } else {
     showReward();
