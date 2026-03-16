@@ -777,53 +777,54 @@ function playCard(rate) {
 
 async function speakText(text, rate = 1.0, topic = null, stackIdx = null, cardIdx = null) {
   return new Promise(async (resolve) => {
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
 
-  // ── Tier 1: Try static MP3 file ─────────────────────────────
-  if (topic !== null && stackIdx !== null && cardIdx !== null) {
-    const mp3Url = `audio/${topic}_${stackIdx}_${cardIdx}.mp3`;
+    // ── Tier 1: Try static MP3 file ─────────────────────────────
+    if (topic !== null && stackIdx !== null && cardIdx !== null) {
+      const mp3Url = `audio/${topic}_${stackIdx}_${cardIdx}.mp3`;
+      try {
+        const audio = new Audio(mp3Url);
+        await new Promise((res, rej) => {
+          audio.oncanplaythrough = res;
+          audio.onerror = rej;
+          audio.load();
+        });
+        currentAudio = audio;
+        currentAudio.playbackRate = rate;
+        currentAudio.play();
+        currentAudio.onended = () => { currentAudio = null; resolve(); };
+        return;
+      } catch {
+        console.warn(`Static MP3 not found for ${mp3Url} — falling back to Edge Function`);
+      }
+    }
+
+    // ── Tier 2: Call Sarvam via Edge Function ────────────────────
     try {
-      const audio = new Audio(mp3Url);
-      await new Promise((resolve, reject) => {
-        audio.oncanplaythrough = resolve;
-        audio.onerror = reject;
-        audio.load();
+      const res = await fetch(TTS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
       });
-      currentAudio = audio;
+      const data = await res.json();
+      const base64 = data.audios[0];
+      const binary = atob(base64);
+      const bytes  = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob   = new Blob([bytes], { type: 'audio/mpeg' });
+      const url    = URL.createObjectURL(blob);
+      currentAudio = new Audio(url);
       currentAudio.playbackRate = rate;
       currentAudio.play();
-      currentAudio.onended = () => { currentAudio = null; };
-      return; // success — skip tiers 2 and 3
-    } catch {
-      console.warn(`Static MP3 not found for ${mp3Url} — falling back to Edge Function`);
+      currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null; resolve(); };
+    } catch (err) {
+      // ── Tier 3: Web Speech API fallback ─────────────────────────
+      console.warn('Sarvam fallback:', err);
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'gu-IN'; u.rate = rate;
+      u.onend = () => resolve();
+      window.speechSynthesis.speak(u);
     }
-  }
-
-  // ── Tier 2: Call Sarvam via Edge Function ────────────────────
-  try {
-    const res = await fetch(TTS_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
-    });
-    const data = await res.json();
-    const base64 = data.audios[0];
-    const binary = atob(base64);
-    const bytes  = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob   = new Blob([bytes], { type: 'audio/mpeg' });
-    const url    = URL.createObjectURL(blob);
-    currentAudio = new Audio(url);
-    currentAudio.playbackRate = rate;
-    currentAudio.play();
-    currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null; };
-  } catch (err) {
-    // ── Tier 3: Web Speech API fallback ─────────────────────────
-    console.warn('Sarvam fallback:', err);
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'gu-IN'; u.rate = rate;
-    window.speechSynthesis.speak(u);
-resolve();
   });
 }
 
