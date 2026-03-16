@@ -673,6 +673,10 @@ function advanceCard() {
   if (state.cardIdx < stack.cards.length - 1) {
     state.cardIdx++;
     renderCard();
+  } else if (state.reviewCards.length > 0) {
+    // Loop through review cards before starting quiz
+    state.cardIdx = state.reviewCards.shift();
+    renderCard();
   } else {
     startQuiz();
   }
@@ -772,6 +776,7 @@ function playCard(rate) {
 }
 
 async function speakText(text, rate = 1.0, topic = null, stackIdx = null, cardIdx = null) {
+  return new Promise(async (resolve) => {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
 
   // ── Tier 1: Try static MP3 file ─────────────────────────────
@@ -818,7 +823,8 @@ async function speakText(text, rate = 1.0, topic = null, stackIdx = null, cardId
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'gu-IN'; u.rate = rate;
     window.speechSynthesis.speak(u);
-  }
+resolve();
+  });
 }
 
 // ══ FLAG ══
@@ -861,7 +867,7 @@ function startQuiz() {
   renderQuestion();
 }
 
-function renderQuestion() {
+function renderQuestion(autoPlay = true) {
   const q = state.quizQuestions[state.quizIdx];
   document.getElementById('quiz-badge').textContent = `${state.quizIdx + 1} of ${state.quizQuestions.length}`;
   document.getElementById('quiz-word').textContent  = q.word;
@@ -883,8 +889,10 @@ function renderQuestion() {
     optEl.appendChild(btn);
   });
 
-  // Babu speaks the word
-  setTimeout(() => speakText(q.word, 1.1, 1.4), 350);
+  // Only auto-play word if not suppressed (suppressed when coming from nextQuestion after praise)
+  if (autoPlay) {
+    speakText(q.word, 1.0, state.topic, state.quizIdx, null);
+  }
 }
 
 function animateBabu(type) {
@@ -906,17 +914,19 @@ function selectAnswer(btn, chosen, correct, word) {
     state.quizScore++;
     animateBabu('jump');
     const praise = PRAISE_PAIRS[Math.floor(Math.random() * PRAISE_PAIRS.length)];
-    speakText(praise.spoken + '! ' + word, 1.1, 1.5);
-    setTimeout(() => document.getElementById('quiz-next-btn').classList.add('visible'), 2000);
+    speakText(praise.spoken + '! ' + word, 1.0);
+    setTimeout(() => document.getElementById('quiz-next-btn').classList.add('visible'), 1800);
   } else {
     btn.classList.add('wrong');
     btn.disabled = true;
     state.wrongAttempts++;
     animateBabu('flip');
 
-    if (state.wrongAttempts === 1) {
-      // First wrong — encourage, try again
-      speakText('Try karo! ' + word, 1.0, 1.2);
+if (state.wrongAttempts === 1) {
+      // First wrong — say "try again" then after it finishes say the word again
+      speakText('Try karo!', 1.0).then(() => {
+        setTimeout(() => speakText(word, 1.0), 500);
+      });
     } else {
       // Second wrong — give the answer, move on
       // Highlight correct button
@@ -934,11 +944,14 @@ function selectAnswer(btn, chosen, correct, word) {
 }
 
 function nextQuestion() {
-  // Stop any current audio before moving on
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   state.quizIdx++;
   if (state.quizIdx < state.quizQuestions.length) {
-    renderQuestion();
+    renderQuestion(false); // don't auto-play yet
+    setTimeout(() => {
+      const q = state.quizQuestions[state.quizIdx];
+      speakText(q.word, 1.0, state.topic, state.quizIdx, null);
+    }, 300); // short pause then speak new word
   } else {
     showReward();
   }
