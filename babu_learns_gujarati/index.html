@@ -581,6 +581,7 @@ function goHome() {
 }
 function goStacks() { if (state.topic) renderStacks(state.topic); }
 function selectTopic(key) {
+  unlockAudio();
   state.topic = key;
   document.body.className = 'theme-' + key;
   renderStacks(key);
@@ -754,15 +755,46 @@ function applyScriptToggle() {
 
 // ══ AUDIO (SARVAM) ══
 let currentAudio = null;
+
+// ── Audio context unlock — called on first user gesture ──────
+let audioUnlocked = false;
+function unlockAudio() {
+  if (audioUnlocked) return;
+  const silent = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAABAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAYAAAAAAAAAASDs90IAAAAAAAAAAAAAAAAAAAAA");
+  silent.play().then(() => { audioUnlocked = true; }).catch(() => {});
+}
+
 function playNormal() { playCard(1.0); }
 function playSlow()   { playCard(0.72); }
 function playCard(rate) {
   const card = CONTENT[state.topic].stacks[state.stackIdx].cards[state.cardIdx];
-  speakText(card.gu, rate);
+  speakText(card.gu, rate, state.topic, state.stackIdx, state.cardIdx);
 }
 
-async function speakText(text, rate = 1.0) {
+async function speakText(text, rate = 1.0, topic = null, stackIdx = null, cardIdx = null) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+  // ── Tier 1: Try static MP3 file ─────────────────────────────
+  if (topic !== null && stackIdx !== null && cardIdx !== null) {
+    const mp3Url = `audio/${topic}_${stackIdx}_${cardIdx}.mp3`;
+    try {
+      const audio = new Audio(mp3Url);
+      await new Promise((resolve, reject) => {
+        audio.oncanplaythrough = resolve;
+        audio.onerror = reject;
+        audio.load();
+      });
+      currentAudio = audio;
+      currentAudio.playbackRate = rate;
+      currentAudio.play();
+      currentAudio.onended = () => { currentAudio = null; };
+      return; // success — skip tiers 2 and 3
+    } catch {
+      console.warn(`Static MP3 not found for ${mp3Url} — falling back to Edge Function`);
+    }
+  }
+
+  // ── Tier 2: Call Sarvam via Edge Function ────────────────────
   try {
     const res = await fetch(TTS_ENDPOINT, {
       method: 'POST',
@@ -781,6 +813,7 @@ async function speakText(text, rate = 1.0) {
     currentAudio.play();
     currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null; };
   } catch (err) {
+    // ── Tier 3: Web Speech API fallback ─────────────────────────
     console.warn('Sarvam fallback:', err);
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'gu-IN'; u.rate = rate;

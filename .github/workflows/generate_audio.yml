@@ -1,0 +1,48 @@
+name: Generate Audio Files
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'babu_learns_gujarati/flashcards_manifest.json'
+  workflow_dispatch:  # allows manual trigger from GitHub Actions UI
+
+permissions:
+  contents: write  # allows workflow to commit files back to repo
+
+jobs:
+  generate-audio:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install node-fetch
+        working-directory: babu_learns_gujarati
+
+      - name: Generate audio files
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TTS_ENDPOINT: https://iulwgadxcojjmbggvfrj.supabase.co/functions/v1/tts-proxy
+        run: node generate_audio.js
+        working-directory: babu_learns_gujarati
+
+      - name: Commit and push audio files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add babu_learns_gujarati/audio/
+          git add babu_learns_gujarati/flashcards_manifest.json
+          git diff --staged --quiet || git commit -m "Auto-generate audio files from Supabase content"
+          git push
