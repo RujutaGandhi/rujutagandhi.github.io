@@ -15,67 +15,97 @@ Inspired by my own story: I want my toddlers to learn Gujarati in a fun and inte
 
 ---
 
+## What's New in V2.2
+
+### Audio — Pre-generated MP3s via GitHub Actions CI/CD
+
+All 95 Gujarati word audio files are now pre-generated as static MP3s and served directly from GitHub Pages. This matches the architecture used by Duolingo, Rosetta Stone, and Pimsleur — no major language app makes live TTS API calls during a learning session.
+
+**Three-tier audio fallback:**
+1. **Tier 1 — Static MP3** (`audio/{topic}_{stack}_{card}.mp3`) — plays in under 100ms, zero API cost
+2. **Tier 2 — Sarvam Edge Function** — live TTS call if the MP3 file is missing
+3. **Tier 3 — Web Speech API** — browser fallback if both above fail
+
+**GitHub Actions workflow** (`generate_audio.yml`) automatically generates MP3s when `flashcards_manifest.json` changes. The manifest tracks which cards have audio and what Gujarati script they contain — only new or changed cards trigger regeneration. See `AUDIO_GENERATION.md` for the full workflow documentation.
+
+### Audio UX Improvements
+
+- Word plays immediately when a flashcard loads — no button press needed
+- Tapping the flashcard repeats the word
+- Speaker button removed from the card screen — tap the card to replay
+- Audio context unlocked on first user gesture for reliable autoplay on iOS and mobile browsers
+
+### Card Screen UI
+
+- Removed the 🔊 Hear Babu and 🐢 Slow buttons
+- Replaced with two round action buttons: 🔄 (review again) and ✓ (got it)
+- Tapping the card itself replays the word
+
+### Quiz Flow Fixes
+
+- **Congrats timing** — praise audio plays immediately on correct answer; Next button appears after praise finishes
+- **New word timing** — navigating to the next question plays the new word after the screen loads, not before
+- **Wrong answer audio** — Babu says "Try karo!" then pauses, then repeats the word (sequential, not simultaneous)
+- **Review loop before quiz** — cards marked "again" are replayed before the quiz starts
+- **Play Again** — now restarts the quiz instead of going back to the flashcard screen
+
+### Background Color
+
+Card, quiz, and reward screens consistently use the jungle green gradient. Topic color gradients apply to the stacks screen only. This matches Duolingo and Rosetta Stone — consistent environment keeps the child focused on content.
+
+---
+
 ## What's New in V2.1
 
 ### TTS — Switched from ElevenLabs to Sarvam Bulbul v3
-The app now uses Sarvam's Bulbul v3 model (`gu-IN`) for text-to-speech. Unlike ElevenLabs which was receiving romanized text (e.g. "Safarjan"), Sarvam receives native Gujarati script (e.g. "સફરજન") and produces authentic Gujarati pronunciation. This is a meaningful improvement for diaspora children learning to hear the language correctly.
+Sarvam receives native Gujarati script (e.g. "સફરજન") and produces authentic Gujarati pronunciation. ElevenLabs was receiving romanized text (e.g. "Safarjan") and producing an anglicized accent.
 
 ### Backend — Supabase Edge Functions (no keys in the browser)
-V1 exposed the ElevenLabs API key directly in the HTML. V2.1 introduces two Supabase Edge Functions as a backend proxy:
-- **`get-cards`** — fetches all flashcard content from Supabase using an internal service role key
+Two Supabase Edge Functions act as backend proxies:
+- **`get-cards`** — fetches all flashcard content using an internal service role key
 - **`tts-proxy`** — forwards TTS requests to Sarvam using an internal API key
 
-No credentials are exposed in the browser. The app only knows two endpoint URLs.
+No credentials are exposed in the browser.
 
 ### Content — Supabase database replaces hardcoded JS
-All 95 flashcards now live in a Supabase `flashcards` table with Row Level Security enabled. The app fetches cards dynamically on load. New words can be added through the Supabase dashboard without touching code.
+All 95 flashcards live in a Supabase `flashcards` table with Row Level Security enabled. New words can be added through the Supabase dashboard without touching code.
 
-### New Topics — 3 additional topics added
-- **Numbers** — 1 through 20, 4 stacks of 5 cards, digit characters as visuals
-- **Body Parts** — 15 kid-appropriate words across 3 stacks (eyes, ears, nose, mouth, hands, feet, hair, teeth, arm, leg, brain, bone, heart, fingers, back)
-- **Emotions** — 15 words across 3 stacks (happy, sad, angry, scared, tired, laughing, surprised, loving, calm, sick, embarrassed, excited, disappointed, loved, frustrated)
-
-### UI Changes
-- Topic cards now show Gujarati transliteration below the English name (e.g. "Fal" under "Fruits"); Gujarati script shown if script toggle is on
-- Replaced "Hear Babu" and "Slow" buttons with three round action buttons: 🔄 (review again), 🔊 (replay word), ✓ (got it)
-- Removed swipe hint arrows from the card screen — swipe gestures still work
-- Card and quiz screens now use the jungle green background for visual consistency
-- Fixed quiz praise timing — Next button now appears after Babu finishes speaking
-- Fixed Play Again — now restarts the quiz instead of going back to flashcards
-- Fixed quiz audio — now sends Gujarati script to Sarvam instead of romanized text
+### New Topics
+- **Numbers** — 1 through 20, 4 stacks of 5 cards
+- **Body Parts** — 15 kid-appropriate words across 3 stacks
+- **Emotions** — 15 words across 3 stacks
 
 ---
 
 ## What I Built (V1)
 
-### Features
 - **45 vocabulary cards** across 3 topics: Fruits, Colors, Family
 - **3 stacks per topic** (5 cards each), progressively unlocked
-- **Swipe right = Got it · Swipe left = Again** — no buttons, gesture-native UX
-- **ElevenLabs TTS** with a custom voice — Babu speaks every word aloud
+- **Swipe right = Got it · Swipe left = Again** — gesture-native UX
+- **ElevenLabs TTS** with a custom voice
 - **Picture-only quiz**: Babu says a word, child taps the matching emoji from a 2×2 grid
 - **Two-strike wrong answer logic**: encourage on first miss, reveal answer on second
-- **Babu animates**: jumps on correct answers, flips on wrong ones
-- **Stars = words learned** (1 star per word; no duplicate stars on replay)
-- **Gujarati script toggle** — parent-facing, persists across sessions via localStorage
-- **Reward screen** with confetti; Gujarati praise shown first, English below
+- **Babu animates**: jumps on correct, flips on wrong
+- **Stars = words learned** (1 per word; no duplicates on replay)
+- **Gujarati script toggle** — persists via localStorage
+- **Reward screen** with confetti; Gujarati praise first, English below
 - **Flag cards** for bad translations
-- Graceful fallback to Web Speech API if ElevenLabs is unavailable
 
 ---
 
 ## Tech Stack
 
-| Layer | V1 | V2.1 |
-|---|---|---|
-| Frontend | Vanilla HTML / CSS / JS — single file | Same |
-| Hosting | GitHub Pages | Same |
-| TTS | ElevenLabs `eleven_multilingual_v2` | Sarvam Bulbul v3 (`gu-IN`) |
-| TTS input | Romanized text (e.g. "Safarjan") | Gujarati script (e.g. "સફરજન") |
-| TTS fallback | Web Speech API (en-US) | Web Speech API (gu-IN) |
-| Backend | None — keys in HTML | Supabase Edge Functions |
-| Content | 45 cards hardcoded in JS | 95 cards in Supabase database |
-| Storage | localStorage | localStorage |
+| Layer | V1 | V2.1 | V2.2 |
+|---|---|---|---|
+| Frontend | Vanilla HTML / CSS / JS | Same | Same |
+| Hosting | GitHub Pages | Same | Same |
+| TTS | ElevenLabs | Sarvam Bulbul v3 | Pre-generated MP3s |
+| TTS input | Romanized text | Gujarati script | Gujarati script |
+| TTS fallback | Web Speech (en-US) | Web Speech (gu-IN) | Edge Function → Web Speech |
+| Backend | None — keys in HTML | Supabase Edge Functions | Same |
+| Content | 45 cards hardcoded | 95 cards in Supabase | Same |
+| Audio delivery | Live API calls | Live API calls | Static MP3s + fallback |
+| CI/CD | None | None | GitHub Actions |
 
 ---
 
@@ -83,41 +113,35 @@ All 95 flashcards now live in a Supabase `flashcards` table with Row Level Secur
 
 ### Product Decisions
 
-**Conversation-first, not literacy-first.** Removing flip cards and on-screen words was the right call — the card is just a picture, Babu says everything. This cut cognitive load dramatically for pre-readers.
+**Conversation-first, not literacy-first.** The card is just a picture — Babu says everything. Reduced cognitive load dramatically for pre-readers.
 
-**Swipe beats buttons for kids.** The Got it / Again button row felt like schoolwork. Swipe right / left is instinctive for children who grew up with touchscreens.
+**Tap the card to repeat.** Removing the speaker button and making the card tappable is more intuitive — the picture is the thing you're learning, so tapping it to hear it again is a natural gesture.
 
-**Quiz distractors must come from the same stack.** Pulling from all topics put fruits next to colors, which confused the picture-choice format. Same-stack distractors make the quiz feel fair and learnable.
+**Review before quiz, not after.** Cards marked "again" should be seen again before the quiz. A child who struggled shouldn't be quizzed without a second chance.
 
-**Praise should be heard, not read.** Text praise at the bottom added noise without value for a non-reader. Babu speaking the praise aloud is more impactful and keeps the screen clean.
+**Congrats should finish before Next appears.** The original timing had praise playing simultaneously with the next word. Sequential audio makes both meaningful.
 
-**Stars = words, not quality score.** Originally 1-3 stars for quiz performance. Changed to 1 star per word learned (5 words = 5 stars) — concrete and genuinely rewarding to a child.
+**Wrong answer audio needs a pause.** "Try karo! Apple." as one string is confusing. "Try karo!" → pause → "Apple" is how a patient teacher speaks.
 
-**No duplicate stars.** Once a stack is complete, replaying it should not inflate the star count. A simple alreadyDone flag in localStorage solved this cleanly.
+**Pre-generate audio, don't stream it.** Live TTS calls add 500–1500ms per word. Pre-generating 95 MP3s means audio plays in under 100ms. This is what every major language app does.
 
-**Send native script to TTS, not romanization.** ElevenLabs was receiving "Safarjan" and guessing pronunciation. Sarvam receives "સફરજન" and knows exactly how to say it. The quality difference is significant.
+**Consistent background = consistent focus.** Changing background per topic created visual noise. Jungle green throughout is the brand.
 
-**Backend proxies protect API keys without a full server.** Supabase Edge Functions are lightweight Deno functions — no cold start problem, no server to maintain, free tier sufficient for V2.1. The Sarvam key and Supabase service key never leave the server.
+**Send native script to TTS.** ElevenLabs received "Safarjan" and guessed. Sarvam receives "સફરજન" and knows exactly how to say it.
 
 ### Technical Decisions
 
-**Sarvam Bulbul v3 over ElevenLabs for V2.1.** Bulbul v3 is trained on Indian languages and handles Gujarati script natively. ElevenLabs required romanized input and produced a non-Gujarati accent. The switch was the single most impactful quality improvement in V2.1.
+**GitHub Actions for audio generation.** The workflow only runs when `flashcards_manifest.json` changes — not on every code push. Only new or changed cards are processed. This mirrors how content pipelines work at production language apps.
 
-**Supabase Edge Functions as the backend proxy.** No separate server needed — the Edge Functions live inside the existing Supabase project. Two functions handle everything: one for fetching cards, one for proxying TTS. Secrets are stored as Supabase environment variables and never exposed to the browser.
+**Three-tier audio fallback.** The app degrades gracefully if any layer fails. Forgetting to update the manifest doesn't break the app — it falls back to live API calls with latency.
 
-**RLS on with a public read policy.** The flashcards table has Row Level Security enabled with a single SELECT policy for all users. The anon key cannot write, delete, or access any other table. The service role key (used inside the Edge Function) has full access but never reaches the browser.
+**Concurrency control in GitHub Actions.** `concurrency: group: generate-audio` prevents two workflow runs from overlapping and causing git push conflicts.
 
-**Flashcard content in Supabase, not hardcoded JS.** Moving from 45 hardcoded cards to 95 database rows was the right call for a portfolio piece. New words can be added through the Supabase dashboard. The table schema supports all 6 topics dynamically.
+**Retry logic for Sarvam API.** Short Gujarati words occasionally return empty audio. The script retries up to 3 times with increasing delays before marking a file as failed.
 
-**Topic card UI generated dynamically.** renderTopicCards() loops over whatever topics come back from Supabase. Adding a new topic to the database automatically creates a new card on the home screen. The only hardcoded part is TOPIC_CONFIG — the emoji and gradient for each topic key — which is a deliberate UI design decision, not content.
+**`speakText` returns a Promise.** Resolves when audio ends across all three tiers. Enables `.then()` chaining for sequential audio without setTimeout guesswork.
 
-### Design Decisions
-
-**Jungle green background on all screens.** Extending the dark green gradient to the card and quiz screens creates a consistent, immersive jungle feel. The light cream background on quiz screens was causing white text to be invisible — the fix also improved brand consistency.
-
-**Round icon buttons replace labeled audio buttons.** The 🔄 🔊 ✓ button row is more intuitive for children than "Hear Babu" and "Slow" text labels. The colors reinforce meaning: orange for review, green for learned.
-
-**Topic name translation below English label.** Showing "Fal" under "Fruits" on the home screen gives children and parents immediate cultural context. Switching to Gujarati script mode shows "ફળ" instead — consistent with the script toggle behavior throughout the app.
+**Audio context unlock on first gesture.** A silent audio clip played on the first topic card tap unlocks the audio context for the entire session.
 
 ---
 
@@ -127,42 +151,17 @@ All 95 flashcards now live in a Supabase `flashcards` table with Row Level Secur
 |---|---|---|
 | **V1** | MVP — Static web | 45 cards, ElevenLabs TTS, picture quiz, swipe, GitHub Pages |
 | **V2.1** | Backend + Sarvam TTS | Sarvam Bulbul v3, Supabase Edge Functions, 95 cards, 3 new topics |
-| **V2.2** | Caching + Performance | localStorage cache with version check, faster load times |
+| **V2.2 ✅** | Performance + UX | Pre-generated MP3s, GitHub Actions CI/CD, quiz flow fixes, audio unlock |
 | **V2.3** | Pronunciation Feedback | Sarvam STT — child speaks word, app responds |
 | **V2.5** | iOS App Store | Capacitor wrapper, App Store submission |
 | **V3** | Auth + Parent Dashboard | Supabase user accounts, cross-device sync, parent dashboard |
 | **V3.5** | Monetization | In-app purchases, story mode, merchandise |
 
-### V2.2 — Caching
-- Cache flashcard content in localStorage after first load
-- Version number stored in Supabase — app checks version on load and only re-fetches if content has changed
-- First load slow, every subsequent load instant
-
-### V2.3 — Pronunciation Feedback
-- Child taps microphone button and speaks the word
-- Sarvam STT scores pronunciation
-- Babu responds with encouragement or gentle correction
-
-### V2.5 — iOS
-- Capacitor wrapper to package the web app as a native iOS app
-- Key risk: validate Web Audio API inside Capacitor WebView on iOS Safari before committing
-- Target: Apple App Store submission
-
-### V3 — Backend
-- Supabase user accounts and cross-device progress sync
-- Parent dashboard: view child progress, flagged cards, starred words
-- Babu's Wisdom Corner: Gujarati proverbs with audio and cultural context
-- Community flag review: crowdsourced translation quality control
-- Move TOPIC_CONFIG (emoji, gradient) to a topics table in Supabase — nothing hardcoded
-- Android support
-
 ---
 
 ## Running Locally
 
-No build step needed. Just open index.html in a browser.
-
-Note: the app fetches cards and audio from Supabase Edge Functions. These work from any origin in a local browser — no local server needed.
+No build step needed. Open `index.html` in a browser. The app fetches cards from Supabase and plays pre-generated MP3s from `/audio/`. To regenerate audio files locally, see `AUDIO_GENERATION.md`.
 
 ---
 
