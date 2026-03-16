@@ -435,7 +435,7 @@ body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239
 
   <!-- Swipeable card — picture only -->
   <div class="card-swipe-wrapper" id="card-swipe-wrapper">
-    <div class="flashcard-simple" id="flashcard-simple">
+    <div class="flashcard-simple" id="flashcard-simple" onclick="playNormal()" style="cursor:pointer;">
       <button class="flag-btn" id="flag-btn" onclick="flagCard(event)" aria-label="Flag">🚩</button>
       <div class="swipe-label got-it" id="label-gotit">Got it! ✓</div>
       <div class="swipe-label again"  id="label-again">Again 🔄</div>
@@ -447,7 +447,7 @@ body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239
 
 <div class="audio-row">
     <button class="audio-btn" id="again-btn" onclick="markReview()" aria-label="Hear again">🔄</button>
-    <button class="audio-btn" id="play-btn"  onclick="playNormal()" aria-label="Hear word">🔊</button>
+    <!-- <button class="audio-btn" id="play-btn"  onclick="playNormal()" aria-label="Hear word">🔊</button> -->
     <button class="audio-btn" id="gotit-btn" onclick="markLearned()" aria-label="Got it">✓</button>
   </div>
 </section>
@@ -631,6 +631,7 @@ function startStack(key, idx) {
   state.reviewCards  = [];
   renderCard();
   showScreen('card');
+  playNormal(); // plays immediately within the user gesture chain
 }
 
 // ══ FLASHCARD ══
@@ -665,7 +666,6 @@ function renderCard() {
   emojiEl.style.animation = 'none';
   requestAnimationFrame(() => { emojiEl.style.animation = ''; });
 
-  setTimeout(playNormal, 400);
 }
 
 function advanceCard() {
