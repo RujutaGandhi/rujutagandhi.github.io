@@ -576,13 +576,14 @@
     <div class="demos-grid">
       <div class="demo-card" onclick="openModal('babu')" style="cursor:pointer;">
         <div class="demo-icon">🐒</div>
-        <h3>Babu Learns Gujarati V2.1</h3>
-        <p>A conversation-first language app helping Indian-American kids aged 3–10 learn Gujarati through picture flashcards, ElevenLabs voice audio, and emoji quizzes — no reading required.</p>
+        <h3>Babu Learns Gujarati V2.2</h3>
+        <p>A conversation-first language app helping Indian-American kids aged 3–10 learn Gujarati through picture flashcards, authentic Gujarati voice audio, and emoji quizzes — no reading required.</p>
         <div class="demo-tech">
-          <span>ElevenLabs TTS</span>
+          <span>Sarvam Bulbul v3</span>
+          <span>Supabase</span>
+          <span>GitHub Actions</span>
           <span>Vanilla JS</span>
           <span>GitHub Pages</span>
-          <span>localStorage</span>
         </div>
         <span class="demo-link" style="cursor:pointer;">Learn more →</span>
       </div>
@@ -673,16 +674,19 @@
         <p>A mobile-first web app for children who cannot yet read. Babu (a cartoon monkey) speaks every word aloud in authentic Gujarati using Sarvam Bulbul v3 — a model trained on Indic languages. Children swipe right for "Got it" and left for "Again" on picture-only flashcards, then take a picture-choice quiz. 95 words across 6 topics. No text on cards, no buttons, no friction.</p>
       </div>
 
-      <div class="modal-section">
+     <div class="modal-section">
         <div class="modal-section-label">Key Product Decisions</div>
         <ul>
           <li>Switched from ElevenLabs to Sarvam Bulbul v3 in V2.1 — sends native Gujarati script (સફરજન) instead of romanized text (Safarjan), producing authentic pronunciation instead of an anglicized accent.</li>
           <li>Moved all API keys to Supabase Edge Functions — nothing sensitive is exposed in the browser. The app calls two proxy endpoints; the backend holds all credentials.</li>
           <li>Flashcard content migrated from hardcoded JS to a Supabase database table — new words can be added without touching code.</li>
-          <li>Swipe gesture replaces Got it / Again buttons — instinctive for touchscreen-native children.</li>
+          <li>Pre-generated all 95 audio files as static MP3s via GitHub Actions CI/CD — audio plays in under 100ms with no API calls at runtime. This matches the architecture used by Duolingo and Rosetta Stone.</li>
+          <li>Three-tier audio fallback: static MP3 → Sarvam Edge Function → Web Speech API — the app degrades gracefully if any layer fails.</li>
+          <li>Swipe gesture replaces Got it / Again buttons — instinctive for touchscreen-native children. Tapping the card replays the word — no speaker button needed.</li>
+          <li>Review cards loop before the quiz starts — children who struggled with a word get a second chance before being tested on it.</li>
           <li>Quiz distractors sourced from the same stack only — a fruits quiz never shows a color or family emoji.</li>
-          <li>Two-strike wrong answer rule: encourage on first miss, reveal the correct answer on second.</li>
-          <li>Praise timing fixed — Next button only appears after Babu finishes speaking the congratulations.</li>
+          <li>Quiz audio sequencing fixed — congrats plays immediately on correct answer, new word plays only after navigating to the next question. Wrong answer says "Try karo!" then pauses before repeating the word.</li>
+          <li>Consistent jungle green background across card, quiz, and reward screens — matches Duolingo's approach of keeping the learning environment visually stable.</li>
           <li>Topic cards show Gujarati transliteration below the English name — toggling the script switch shows native script instead.</li>
         </ul>
       </div>
