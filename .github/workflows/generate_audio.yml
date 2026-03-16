@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write  # allows workflow to commit files back to repo
 
+concurrency:
+  group: generate-audio
+  cancel-in-progress: false
+
 jobs:
   generate-audio:
     runs-on: ubuntu-latest
@@ -47,4 +51,5 @@ jobs:
           git add babu_learns_gujarati/audio/
           git add babu_learns_gujarati/flashcards_manifest.json
           git diff --staged --quiet || git commit -m "Auto-generate audio files from Supabase content"
+          git pull --rebase origin main
           git push

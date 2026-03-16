@@ -88,11 +88,30 @@ async function generateMP3(card) {
     throw new Error(`TTS request failed for ${card.gu}: ${res.status} ${await res.text()}`);
   }
 
-  const data = await res.json();
+const data = await res.json();
 
-  if (!data.audios || !data.audios[0]) {
-    throw new Error(`No audio returned for ${card.gu}`);
-  }
+    // Retry up to 3 times if no audio returned
+    if (!data.audios || !data.audios[0]) {
+      let retryData = data;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`  Retrying ${card.gu} (attempt ${attempt}/3)...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        const retryRes = await fetch(TTS_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: card.gu })
+        });
+        retryData = await retryRes.json();
+        if (retryData.audios && retryData.audios[0]) break;
+      }
+      if (!retryData.audios || !retryData.audios[0]) {
+        throw new Error(`No audio returned for ${card.gu} after 3 retries`);
+      }
+      const buffer = Buffer.from(retryData.audios[0], 'base64');
+      fs.writeFileSync(filepath, buffer);
+      console.log(`  ✓ Saved ${filename} on retry (${buffer.length} bytes)`);
+      return filename;
+    }
 
   // Decode base64 and save as MP3
   const buffer = Buffer.from(data.audios[0], 'base64');
