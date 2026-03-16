@@ -118,18 +118,13 @@ body {
 .toggle-switch input:checked ~ .toggle-track .toggle-thumb { transform: translateX(18px); }
 
 /* ═══ TOPIC THEMES ═══ */
-body.theme-fruits #screen-stacks, body.theme-fruits #screen-card,
-body.theme-fruits #screen-quiz,   body.theme-fruits #screen-reward {
-  background: linear-gradient(160deg,#C94A1A 0%,#FF6B35 50%,#FF9A5C 100%);
-}
-body.theme-colors #screen-stacks, body.theme-colors #screen-card,
-body.theme-colors #screen-quiz,   body.theme-colors #screen-reward {
-  background: linear-gradient(160deg,#3D0080 0%,#7B2FBE 50%,#A855F7 100%);
-}
-body.theme-family #screen-stacks, body.theme-family #screen-card,
-body.theme-family #screen-quiz,   body.theme-family #screen-reward {
-  background: linear-gradient(160deg,#C9981A 0%,#F7C948 50%,#FFE066 100%);
-}
+/* Stacks screen keeps topic color — card, quiz, reward always use jungle green */
+body.theme-fruits #screen-stacks  { background: linear-gradient(160deg,#C94A1A 0%,#FF6B35 50%,#FF9A5C 100%); }
+body.theme-colors #screen-stacks  { background: linear-gradient(160deg,#3D0080 0%,#7B2FBE 50%,#A855F7 100%); }
+body.theme-family #screen-stacks  { background: linear-gradient(160deg,#C9981A 0%,#F7C948 50%,#FFE066 100%); }
+body.theme-numbers #screen-stacks { background: linear-gradient(160deg,#0369A1 0%,#0EA5E9 50%,#38BDF8 100%); }
+body.theme-bodyparts #screen-stacks { background: linear-gradient(160deg,#065F46 0%,#10B981 50%,#34D399 100%); }
+body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239 0%,#F43F5E 50%,#FB7185 100%); }
 
 /* ═══ SHARED HEADER ═══ */
 .screen-header { width: 100%; padding: 20px 24px 16px; display: flex; align-items: center; gap: 14px; }
@@ -162,7 +157,7 @@ body.theme-family #screen-quiz,   body.theme-family #screen-reward {
 .stack-lock  { font-size: 28px; }
 
 /* ═══ FLASHCARD — picture only, swipe ═══ */
-#screen-card { align-items: center; padding-bottom: 40px; background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%); }
+#screen-card   { align-items: center; padding-bottom: 40px; background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%); }
 
 .progress-dots { display: flex; gap: 8px; flex: 1; justify-content: center; }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: all 0.3s; }
@@ -254,7 +249,7 @@ body.theme-family #screen-quiz,   body.theme-family #screen-reward {
 .audio-btn:hover { transform: scale(1.08); }
 
 /* ═══ QUIZ ═══ */
-#screen-quiz { align-items: center; padding-bottom: 32px; background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%); }
+#screen-quiz   { align-items: center; padding-bottom: 32px; background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%); }
 .quiz-body { width: 100%; max-width: 460px; padding: 0 20px 20px; align-self: center; flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
 .quiz-badge {
@@ -325,7 +320,7 @@ body.theme-family #screen-quiz,   body.theme-family #screen-reward {
 .quiz-next-btn:hover { transform: translateY(-2px); }
 
 /* ═══ REWARD ═══ */
-#screen-reward { align-items: center; justify-content: center; padding: 40px 20px; text-align: center; position: relative; }
+#screen-reward { align-items: center; justify-content: center; padding: 40px 20px; text-align: center; position: relative; background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%); }
 .confetti-wrapper { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 10; overflow: hidden; }
 .confetti-piece { position: absolute; top: -20px; font-size: 1.5rem; animation: confettiFall linear forwards; }
 @keyframes confettiFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
