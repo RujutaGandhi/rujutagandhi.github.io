@@ -285,7 +285,7 @@
   </div>
   <div class="header-right">
     <div class="status-dot"><div class="dot"></div>Online</div>
-    <a class="back-link" href="../index.html">
+    <a class="back-link" href="../">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       <span>Portfolio</span>
     </a>
@@ -328,7 +328,7 @@
     </div>
     <div class="input-footer">
       <span class="disclaimer">Not affiliated with or endorsed by the United States Postal Service</span>
-      <a class="portfolio-link" href="../index.html">Built by Rujuta Gandhi →</a>
+      <a class="portfolio-link" href="../">Built by Rujuta Gandhi →</a>
     </div>
   </div>
 </div>
@@ -571,9 +571,13 @@
     const bub = document.getElementById('streaming-bubble');
     if (bub) bub.removeAttribute('id');
 
-    if (needsClarification) {
-      // The bot asked a question — don't advance turn counter,
-      // don't add to history (the clarifying Q is not an answer)
+  if (needsClarification) {
+      // Store context so next message has it — but don't advance turn
+      conversationHistory.push({ role: 'user',      content: userMessage });
+      conversationHistory.push({ role: 'assistant',  content: botAnswer  });
+      if (conversationHistory.length > MAX_HISTORY) {
+        conversationHistory = conversationHistory.slice(-MAX_HISTORY);
+      }
     } else {
       // Normal answer or escalation — advance turn and store history
       conversationHistory.push({ role: 'user',      content: userMessage });

@@ -74,7 +74,8 @@ Your answer must be strictly under 100 words. Count carefully. Be direct \
 and concise. Summarize the key information from the retrieved content — \
 do not quote full articles or list every detail. Do not include any URLs \
 or source links in your answer — source citations are handled separately \
-by the UI.
+by the UI. Plain sentences only — absolutely no markdown, no bold, no \
+bullet points, no numbered lists, no headers of any kind.
 
 CONVERSATION MEMORY:
 You will receive the conversation history. Use it to give contextually \
@@ -90,7 +91,7 @@ ESCALATION — call escalate_to_human if:
 TONE:
 Calm, concise, and plain language. Users may be frustrated — be \
 empathetic and direct. Keep answers brief; avoid jargon. No markdown, \
-no bullet points, no bold text. Plain sentences only.
+no bullet points, no bold text. Plain sentences only. Never say "Based on the search results" or reference the retrieval process — speak as a knowledgeable assistant, not a search engine.
 
 SCOPE:
 If the question is not related to USPS services, politely say it is \
@@ -307,11 +308,20 @@ def classify_question(
     Returns:
         {"needs_clarification": bool, "clarifying_question": str | None}
     """
+    # Fast heuristic: skip the API call for questions that are clearly specific enough
+    USPS_TERMS = {"mail", "package", "track", "deliver", "usps", "priority",
+                  "first-class", "informed", "pickup", "hold", "redirect", "claim"}
+    words = question.lower().split()
+    if len(words) > 6 or any(w in USPS_TERMS for w in words):
+        return {"needs_clarification": False, "clarifying_question": None}
+
+    # Remaining code unchanged from here...
     history = conversation_history or []
     history_str = (
         "\n".join(f"{m['role'].upper()}: {m['content']}" for m in history[-4:])
         if history else "(none)"
     )
+    ...
 
     prompt = CLASSIFIER_PROMPT.format(
         history_str=history_str,

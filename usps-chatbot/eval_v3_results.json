@@ -1,0 +1,25 @@
+{
+  "test": "clarify_memory",
+  "passed": 3,
+  "total": 3,
+  "details": [
+    {
+      "script": "International shipping \u2192 clothes",
+      "score": 5,
+      "passed": true,
+      "turn_ended_at": 3
+    },
+    {
+      "script": "Delivery change \u2192 reschedule",
+      "score": 5,
+      "passed": true,
+      "turn_ended_at": 3
+    },
+    {
+      "script": "How long does it take \u2192 Priority Mail",
+      "score": 5,
+      "passed": true,
+      "turn_ended_at": 3
+    }
+  ]
+}

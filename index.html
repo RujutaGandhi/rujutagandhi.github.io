@@ -589,7 +589,7 @@
       </div>
       <div class="demo-card" onclick="openModal('usps-chatbot')" style="cursor:pointer;">
       <div class="demo-icon">📬</div>
-      <h3>USPS Chatbot V1</h3>
+      <h3>USPS Chatbot V2</h3>
       <p>RAG-powered conversational AI agent that answers USPS customer service questions from real FAQ content — and escalates when it can't help.</p>
       <div class="demo-tech">
         <span>Claude Code</span>
@@ -597,6 +597,7 @@
         <span>Supabase pgvector</span>
         <span>FastAPI</span>
         <span>Python</span>
+        <span>SSE Streaming</span>
       </div>
       <span class="demo-link" style="cursor:pointer;">Learn more →</span>
     </div>
@@ -745,7 +746,7 @@
 
       <div class="modal-section">
         <div class="modal-section-label">What I Built</div>
-        <p>A RAG-powered conversational chatbot that scrapes and indexes 286 real USPS FAQ articles, retrieves the most semantically relevant content for each question, and uses Claude to generate a grounded, plain-language response. The agent escalates gracefully when confidence is low — routing users to a real human rather than hallucinating an answer.</p>
+        <p>A RAG-powered conversational chatbot that scrapes and indexes 286 real USPS FAQ articles, retrieves the most semantically relevant content for each question, and streams a grounded plain-language response token by token. V2 adds conversation memory across 3 turns, a pre-flight intent classifier that asks one clarifying question when the topic is ambiguous, response summarization capped at 100 words, and graceful escalation with phone and chat contact options when the agent reaches its limits.</p>
       </div>
 
       <div class="modal-section">
@@ -756,6 +757,12 @@
           <li>Set similarity threshold at 0.3 after running a 20-question golden set (10 common + 5 niche + 5 escalation) — LLM-as-Judge scored 4.93/5 faithfulness, 4.73/5 relevance</li>
           <li>Chose Supabase pgvector over Pinecone to reduce infrastructure complexity and stay free-tier compatible for a V1</li>
           <li>Deployed on Render free tier with a cron-job.org keep-alive ping every 10 minutes to prevent cold starts</li>
+          <li>SSE streaming over standard JSON response — tokens stream to the browser as Claude generates them. Animated typing dots show until the first token arrives, then text renders word by word. Two response headers prevent Render's nginx proxy from buffering the stream.</li>
+          <li>Pre-flight intent classifier — a lightweight Claude call (temperature 0) runs before retrieval to decide if a clarifying question is needed. This preserves the forced tool_choice guardrail on the main agent loop. Named-service questions (Priority Mail, First-Class, etc.) skip the classifier entirely to reduce latency.</li>
+          <li>Turn counter owned by the frontend — the client sends turn_number with every request and only increments after a real answer is received. Clarifying exchanges store in history but don't consume a turn, so context is preserved without shortening the conversation window.</li>
+          <li>Citation pill replaces inline URL — Claude was choosing which URL to include in its prose, sometimes picking a lower-relevance article. Removing the inline URL instruction and relying solely on the meta source_url (always the highest similarity score chunk) gives users one correct, consistent source per answer.</li>
+          <li>Supabase RPC functions secured with SET search_path = public — fixed a mutable search_path security advisory. Dropped three legacy embedding functions that were flagged but no longer called by any code.</li>
+          <li>Chose Supabase pgvector over Pinecone to reduce infrastructure complexity and stay free-tier compatible. Deployed on Render free tier with a cron-job.org keep-alive ping every 10 minutes to prevent cold starts.</li>
         </ul>
       </div>
 
@@ -776,16 +783,15 @@
           <span>GitHub Pages</span>
           <span>Python</span>
           <span>cron-job.org</span>
+          <span>SSE Streaming</span>
         </div>
       </div>
 
       <div class="modal-section">
-        <div class="modal-section-label">Thoughts for V2</div>
+        <div class="modal-section-label">Thoughts for V3</div>
         <ul>
-          <li>Streaming responses for a more natural, real-time chat feel</li>
-          <li>Conversation memory so follow-up questions work naturally across turns</li>
-          <li>Summarize retrieved articles before generating a response — improving answer quality and reducing token usage</li>
-          <li>Clarifying questions — when a query is ambiguous, ask one follow-up before retrieving to surface a more precise answer</li>
+          <li>Stream clarifying questions</li>
+          <li>Speech to text and text to speech to interact with the bot</li>
         </ul>
       </div>
 
