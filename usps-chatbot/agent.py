@@ -36,7 +36,7 @@ MATCH_COUNT     = 5
 VOYAGE_MODEL    = "voyage-3"
 RPC_FUNCTION    = "match_usps_voyage"
 CLAUDE_MODEL    = "claude-sonnet-4-20250514"
-MAX_TOKENS      = 175   # safety ceiling — system prompt enforces ≤100 words, this prevents mid-sentence cutoff
+MAX_TOKENS      = 300   # safety ceiling — system prompt enforces ≤100 words, this prevents mid-sentence cutoff
 TEMPERATURE     = 0.1
 MAX_TURNS       = 3     # escalate on turn > MAX_TURNS
 
@@ -331,7 +331,7 @@ def classify_question(
     try:
         response = client.messages.create(
             model=CLAUDE_MODEL,
-            max_tokens=120,
+            max_tokens=300,
             temperature=0.0,   # deterministic — this is classification, not generation
             messages=[{"role": "user", "content": prompt}],
         )
