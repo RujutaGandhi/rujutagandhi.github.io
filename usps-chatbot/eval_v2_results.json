@@ -1,0 +1,162 @@
+[
+  {
+    "test": "word_count",
+    "passed": 10,
+    "total": 10,
+    "details": [
+      {
+        "question": "How do I track my package?",
+        "word_count": 88,
+        "passed": true
+      },
+      {
+        "question": "What is USPS Informed Delivery?",
+        "word_count": 100,
+        "passed": true
+      },
+      {
+        "question": "How do I hold my mail while on vacation?",
+        "word_count": 89,
+        "passed": true
+      },
+      {
+        "question": "How do I submit a missing mail search?",
+        "word_count": 75,
+        "passed": true
+      },
+      {
+        "question": "What are USPS Priority Mail delivery times?",
+        "word_count": 71,
+        "passed": true
+      },
+      {
+        "question": "How do I file a claim for a damaged package?",
+        "word_count": 85,
+        "passed": true
+      },
+      {
+        "question": "Can I redirect a package to a different address?",
+        "word_count": 69,
+        "passed": true
+      },
+      {
+        "question": "What is the cost to mail a letter domestically?",
+        "word_count": 64,
+        "passed": true
+      },
+      {
+        "question": "How do I schedule a package pickup?",
+        "word_count": 94,
+        "passed": true
+      },
+      {
+        "question": "What is the difference between First-Class and Priority Mail?",
+        "word_count": 86,
+        "passed": true
+      }
+    ]
+  },
+  {
+    "test": "turn_counter",
+    "passed": true
+  },
+  {
+    "test": "memory",
+    "passed": 3,
+    "total": 3,
+    "details": [
+      {
+        "script": "Package tracking follow-up",
+        "score": 5,
+        "passed": true
+      },
+      {
+        "script": "Mail hold follow-up",
+        "score": 5,
+        "passed": true
+      },
+      {
+        "script": "Priority Mail follow-up",
+        "score": 5,
+        "passed": true
+      }
+    ]
+  },
+  {
+    "test": "clarifying_question",
+    "passed": 9,
+    "total": 10,
+    "details": [
+      {
+        "question": "Where is my package?",
+        "should_clarify": false,
+        "score": 4,
+        "multi_question_fail": false,
+        "passed": true
+      },
+      {
+        "question": "How do I ship something?",
+        "should_clarify": true,
+        "score": 5,
+        "multi_question_fail": false,
+        "passed": true
+      },
+      {
+        "question": "What happened to my mail?",
+        "should_clarify": false,
+        "score": 5,
+        "multi_question_fail": false,
+        "passed": true
+      },
+      {
+        "question": "Can I change my delivery?",
+        "should_clarify": true,
+        "score": 5,
+        "multi_question_fail": false,
+        "passed": true
+      },
+      {
+        "question": "How long does it take?",
+        "should_clarify": true,
+        "score": 5,
+        "multi_question_fail": false,
+        "passed": true
+      },
+      {
+        "question": "How do I track a USPS package with a tracking number?",
+        "should_clarify": false,
+        "score": 5,
+        "multi_question_fail": false,
+        "passed": true
+      },
+      {
+        "question": "What is the price to mail a first-class letter?",
+        "should_clarify": false,
+        "score": 1,
+        "multi_question_fail": false,
+        "passed": false
+      },
+      {
+        "question": "How do I set up Informed Delivery?",
+        "should_clarify": false,
+        "score": 5,
+        "multi_question_fail": false,
+        "passed": true
+      },
+      {
+        "question": "How do I schedule a package pickup online?",
+        "should_clarify": false,
+        "score": 4,
+        "multi_question_fail": false,
+        "passed": true
+      },
+      {
+        "question": "How do I file a missing mail claim?",
+        "should_clarify": false,
+        "score": 4,
+        "multi_question_fail": false,
+        "passed": true
+      }
+    ]
+  }
+]
