@@ -36,7 +36,7 @@ MATCH_COUNT     = 5
 VOYAGE_MODEL    = "voyage-3"
 RPC_FUNCTION    = "match_usps_voyage"
 CLAUDE_MODEL    = "claude-sonnet-4-20250514"
-MAX_TOKENS      = 125   # hard ceiling — ~90-95 words at 0.75 words/token
+MAX_TOKENS      = 300   # hard ceiling — ~90-95 words at 0.75 words/token
 TEMPERATURE     = 0.1
 MAX_TURNS       = 3     # escalate on turn > MAX_TURNS
 
