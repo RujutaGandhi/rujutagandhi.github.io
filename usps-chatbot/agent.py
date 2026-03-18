@@ -36,7 +36,7 @@ MATCH_COUNT     = 5
 VOYAGE_MODEL    = "voyage-3"
 RPC_FUNCTION    = "match_usps_voyage"
 CLAUDE_MODEL    = "claude-sonnet-4-20250514"
-MAX_TOKENS      = 300   # hard ceiling — ~90-95 words at 0.75 words/token
+MAX_TOKENS      = 175   # safety ceiling — system prompt enforces ≤100 words, this prevents mid-sentence cutoff
 TEMPERATURE     = 0.1
 MAX_TURNS       = 3     # escalate on turn > MAX_TURNS
 
@@ -72,8 +72,9 @@ escalate_to_human.
 SUMMARIZATION — CRITICAL:
 Your answer must be strictly under 100 words. Count carefully. Be direct \
 and concise. Summarize the key information from the retrieved content — \
-do not quote full articles or list every detail. If a source URL is \
-available, add it on a new line as: "For more details: <url>"
+do not quote full articles or list every detail. Do not include any URLs \
+or source links in your answer — source citations are handled separately \
+by the UI.
 
 CONVERSATION MEMORY:
 You will receive the conversation history. Use it to give contextually \
