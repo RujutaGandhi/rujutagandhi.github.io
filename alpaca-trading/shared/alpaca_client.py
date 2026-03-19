@@ -10,6 +10,7 @@ Handles all communication with Alpaca:
 import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from typing import Optional, List
 
 import pandas as pd
 from alpaca.trading.client import TradingClient
@@ -83,7 +84,7 @@ class AlpacaClient:
         """Returns list of all open positions."""
         return self.trading.get_all_positions()
 
-    def get_position_symbols(self) -> list[str]:
+    def get_position_symbols(self) -> List[str]:
         """Returns list of symbols currently held."""
         return [p.symbol for p in self.get_positions()]
 
@@ -158,7 +159,7 @@ class AlpacaClient:
     # MARKET DATA — LIVE QUOTES
     # ============================================================
 
-    def get_stock_price(self, symbol: str) -> float | None:
+    def get_stock_price(self, symbol: str) -> Optional[float]:
         """Returns the latest ask price for a stock."""
         try:
             request = StockLatestQuoteRequest(symbol_or_symbols=symbol)
@@ -168,7 +169,7 @@ class AlpacaClient:
             logger.error(f"❌ Failed to get stock price for {symbol}: {e}")
             return None
 
-    def get_crypto_price(self, symbol: str) -> float | None:
+    def get_crypto_price(self, symbol: str) -> Optional[float]:
         """Returns the latest ask price for crypto."""
         try:
             request = CryptoLatestQuoteRequest(symbol_or_symbols=symbol)
@@ -190,7 +191,7 @@ class AlpacaClient:
         limit_price: float,
         take_profit: float,
         stop_loss: float,
-    ) -> dict | None:
+    ) -> Optional[dict]:
         """
         Places a limit order with take-profit and stop-loss.
         Uses bracket order so both exits are set automatically.
@@ -273,7 +274,7 @@ class AlpacaClient:
             return self.get_crypto_bars(symbol, lookback_days)
         return self.get_stock_bars(symbol, lookback_days)
 
-    def get_price(self, symbol: str) -> float | None:
+    def get_price(self, symbol: str) -> Optional[float]:
         """
         Unified price fetcher — automatically routes to
         stock or crypto client based on symbol format.

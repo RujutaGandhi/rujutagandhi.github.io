@@ -19,6 +19,7 @@ And return the same DataFrame with new indicator columns added.
 import logging
 import pandas as pd
 import numpy as np
+from typing import Optional
 
 from shared.config import INDICATORS
 
@@ -227,7 +228,7 @@ def compute_all(df: pd.DataFrame) -> pd.DataFrame:
 # This is what gets passed to Claude in the prompt
 # ============================================================
 
-def get_latest_signals(df: pd.DataFrame) -> dict | None:
+def get_latest_signals(df: pd.DataFrame) -> Optional[dict]:
     """
     Extracts the most recent row of indicator values.
     Returns a clean dict ready to be injected into Claude prompt.

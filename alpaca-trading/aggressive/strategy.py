@@ -17,6 +17,7 @@ import json
 import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from typing import Optional, List
 
 import anthropic
 
@@ -65,7 +66,7 @@ ALWAYS respond in this exact JSON format, nothing else:
   "entry_price": 0.00,
   "stop_loss": 0.00,
   "take_profit": 0.00,
-  "position_size_pct": 0.00,
+  "position_size_pct": 0.00,  # decimal form e.g. 0.10 means 10%, never exceed 0.15 for stocks or 0.20 for crypto
   "confidence": "LOW" | "MEDIUM" | "HIGH",
   "reason": "max 2 sentences explaining your decision",
   "indicators_agreed": 0,
@@ -159,7 +160,7 @@ Size guidance:
 # CLAUDE DECISION ENGINE
 # ============================================================
 
-def get_claude_decision(prompt: str) -> dict | None:
+def get_claude_decision(prompt: str) -> Optional[dict]:
     """Sends prompt to Claude, parses JSON response."""
     try:
         client   = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -214,7 +215,7 @@ class AggressiveStrategy:
                 f"[Aggressive] New day — open value: ${self.today_open_value:,.2f}"
             )
 
-    def run_cycle(self) -> list[dict]:
+    def run_cycle(self) -> List[dict]:
         """
         Runs one full hourly cycle across all symbols.
         Returns list of decisions made this cycle.
@@ -317,10 +318,12 @@ class AggressiveStrategy:
                         self.config["crypto_cap_pct"] if is_crypto
                         else self.config["max_position_pct"]
                     )
-                    position_pct = min(
-                        decision.get("position_size_pct", max_pct * 0.5),
-                        max_pct
-                    )
+                   
+                    raw_pct = decision.get("position_size_pct", max_pct * 0.5)
+                    # Normalize if Claude returns whole number (e.g. 10 instead of 0.10)
+                    if raw_pct > 1:
+                        raw_pct = raw_pct / 100
+                    position_pct = min(raw_pct, max_pct)
                     price        = signals["price"]
                     atr          = signals["atr"]
                     stop_loss    = price - (self.config["atr_stop_multiplier"] * atr)

@@ -16,6 +16,7 @@ If risk checks fail, the cycle is skipped entirely.
 import logging
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
+from typing import List
 
 from shared.config import CONSERVATIVE, AGGRESSIVE, MARKET_OPEN_HOUR, MARKET_OPEN_MIN, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN, NO_NEW_TRADES_MINS_BEFORE_CLOSE
 from shared.alerts import alert_kill_switch, alert_daily_stop
@@ -153,7 +154,7 @@ CORRELATION_GROUPS = {
 
 def check_correlation(
     new_symbol: str,
-    open_positions: list[str],
+    open_positions: List[str],
     max_per_group: int = 1,
 ) -> bool:
     """

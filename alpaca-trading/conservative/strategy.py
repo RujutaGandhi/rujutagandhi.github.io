@@ -17,6 +17,7 @@ import json
 import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from typing import Optional, List
 
 import anthropic
 
@@ -149,7 +150,7 @@ Otherwise output HOLD.
 # CLAUDE DECISION ENGINE
 # ============================================================
 
-def get_claude_decision(prompt: str) -> dict | None:
+def get_claude_decision(prompt: str) -> Optional[dict]:
     """
     Sends prompt to Claude, parses JSON response.
     Returns None if Claude fails or returns invalid JSON.
@@ -208,7 +209,7 @@ class ConservativeStrategy:
                 f"[Conservative] New day — open value: ${self.today_open_value:,.2f}"
             )
 
-    def run_cycle(self) -> list[dict]:
+    def run_cycle(self) -> List[dict]:
         """
         Runs one full hourly cycle across all symbols.
         Returns list of decisions made this cycle.
@@ -316,10 +317,11 @@ class ConservativeStrategy:
                         self.config["crypto_cap_pct"] if is_crypto
                         else self.config["max_position_pct"]
                     )
-                    position_pct = min(
-                        decision.get("position_size_pct", max_pct),
-                        max_pct
-                    )
+                    raw_pct = decision.get("position_size_pct", max_pct)
+                    # Normalize if Claude returns whole number (e.g. 10 instead of 0.10)
+                    if raw_pct > 1:
+                        raw_pct = raw_pct / 100
+                    position_pct = min(raw_pct, max_pct)
                     price        = signals["price"]
                     atr          = signals["atr"]
                     stop_loss    = price - (self.config["atr_stop_multiplier"] * atr)
