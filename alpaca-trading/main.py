@@ -25,6 +25,9 @@ from shared.alerts import alert_bot_started, alert_error
 from conservative.strategy import ConservativeStrategy
 from aggressive.strategy import AggressiveStrategy
 
+from shared.review import run_daily_review
+from shared.state import get_settings
+
 # ============================================================
 # LOGGING SETUP
 # Logs to both console and individual strategy log files
@@ -244,6 +247,12 @@ def main():
                 f"Aggressive: ${today_open_values['aggressive']:,.2f}"
             )
 
+        # Run daily review at 4:05pm ET (after market close)
+        if now.hour == 16 and now.minute == 5 and now.second < 60:
+            logger.info("📊 Triggering end-of-day review...")
+            run_daily_review(alpaca_conservative, alpaca_aggressive)
+            time.sleep(61)  # Prevent double-firing
+        
         # Run hourly cycle at the top of each hour (:00)
         # Check every 60 seconds to avoid drift
         if now.minute == 0 and now.second < 60:
