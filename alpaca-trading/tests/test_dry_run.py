@@ -29,8 +29,13 @@ from shared.config import (
 from shared.alpaca_client import AlpacaClient
 from shared.indicators import compute_all, get_latest_signals
 from shared.regime_filter import regime_summary, is_regime_match
-from conservative.strategy import build_decision_prompt as con_prompt, get_claude_decision as con_claude, SYSTEM_PROMPT as CON_SYSTEM
-from aggressive.strategy import build_decision_prompt as agg_prompt, get_claude_decision as agg_claude, SYSTEM_PROMPT as AGG_SYSTEM
+from shared.news import get_news_sentiment
+from shared.earnings import check_earnings_veto
+from shared.fear_greed import get_fear_greed
+from shared.congressional import get_congressional_signal
+from shared.scoring import calculate_score
+from conservative.strategy import build_decision_prompt as con_prompt, get_claude_decision as con_claude
+from aggressive.strategy import build_decision_prompt as agg_prompt, get_claude_decision as agg_claude
 
 PASS = "✅ PASS"
 FAIL = "❌ FAIL"
@@ -140,10 +145,24 @@ for symbol, signals, regime, df_ind in good_symbols[:2]:  # Test first 2 symbols
             print(f"  ⏭️   {symbol} — regime {regime['regime']} doesn't match conservative, skipping")
             continue
 
+        news          = get_news_sentiment(symbol)
+        earnings      = check_earnings_veto(symbol)
+        fear_greed    = get_fear_greed()
+        congressional = get_congressional_signal(symbol)
+        score         = calculate_score(
+            signals=signals,
+            regime=regime,
+            news=news,
+            fear_greed=fear_greed,
+            congressional=congressional,
+        )
+
         prompt = con_prompt(
             symbol=symbol,
             signals=signals,
             regime=regime,
+            score=score,
+            earnings=earnings,
             portfolio_value=con_value,
             today_open_value=con_value,
             open_positions=con_positions,
@@ -186,10 +205,24 @@ print("  → Calling Claude with real market data. No orders will be placed.\n")
 agg_decisions = []
 for symbol, signals, regime, df_ind in good_symbols[:2]:
     try:
+        news          = get_news_sentiment(symbol)
+        earnings      = check_earnings_veto(symbol)
+        fear_greed    = get_fear_greed()
+        congressional = get_congressional_signal(symbol)
+        score         = calculate_score(
+            signals=signals,
+            regime=regime,
+            news=news,
+            fear_greed=fear_greed,
+            congressional=congressional,
+        )
+
         prompt = agg_prompt(
             symbol=symbol,
             signals=signals,
             regime=regime,
+            score=score,
+            earnings=earnings,
             portfolio_value=agg_value,
             today_open_value=agg_value,
             open_positions=agg_positions,

@@ -27,6 +27,12 @@ from shared.indicators import compute_all, get_latest_signals
 from shared.regime_filter import detect_regime, is_regime_match, regime_summary
 from shared.alerts import alert_trade_executed
 
+from shared.news import get_news_sentiment
+from shared.earnings import check_earnings_veto
+from shared.fear_greed import get_fear_greed
+from shared.congressional import get_congressional_signal
+from shared.scoring import calculate_score, is_trade_eligible, score_summary
+
 logger = logging.getLogger(__name__)
 ET = ZoneInfo("America/New_York")
 
@@ -84,6 +90,8 @@ def build_decision_prompt(
     symbol: str,
     signals: dict,
     regime: dict,
+    score: dict,
+    earnings: dict,
     portfolio_value: float,
     today_open_value: float,
     open_positions: list,
@@ -153,6 +161,14 @@ Size guidance:
   2 signals agree → use 5–8% position size
   3 signals agree → use 8–12% position size
   4+ signals agree → use 12–15% position size (stocks) / up to 20% (crypto)
+
+{score.get('scorecard', '')}
+
+Aggressive threshold: 4 points minimum to trade.
+Current score: {score.get('total_score', 0)} points → {'✅ ELIGIBLE' if score.get('total_score', 0) >= 4 else '❌ BELOW THRESHOLD — output HOLD'}
+Earnings veto: {'🚫 YES — ' + earnings.get('veto_reason', '') if earnings.get('veto') else '✅ No earnings veto'}
+
+Make your final judgment. Be decisive.
 """.strip()
 
 
@@ -295,10 +311,35 @@ class AggressiveStrategy:
                     )
                     continue
 
+                # Gather all signals
+                news          = get_news_sentiment(symbol)
+                earnings      = check_earnings_veto(symbol)
+                fear_greed    = get_fear_greed()
+                congressional = get_congressional_signal(symbol)
+
+                # Calculate weighted score
+                score = calculate_score(
+                    signals=signals,
+                    regime=regime,
+                    news=news,
+                    fear_greed=fear_greed,
+                    congressional=congressional,
+                )
+
+                # Check eligibility before calling Claude
+                eligible, reason = is_trade_eligible(score, earnings, "aggressive")
+                logger.info(f"[Aggressive] {symbol}: {score_summary(score, eligible, reason)}")
+
+                if not eligible:
+                    continue
+
+                # Build prompt and get Claude's decision
                 prompt = build_decision_prompt(
                     symbol=symbol,
                     signals=signals,
                     regime=regime,
+                    score=score,
+                    earnings=earnings,
                     portfolio_value=portfolio_value,
                     today_open_value=self.today_open_value or portfolio_value,
                     open_positions=open_positions,
