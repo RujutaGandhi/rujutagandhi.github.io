@@ -1,0 +1,32 @@
+# Trading Bot — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Alpaca trading API
+alpaca-py==0.26.0
+
+# Anthropic Claude API
+anthropic==0.40.0
+
+# Technical indicators
+ta==0.11.0
+pandas==2.2.0
+numpy==1.26.4
+
+# Market data
+yfinance==0.2.40
+
+# Environment variables
+python-dotenv==1.0.1
+
+# Scheduling (hourly runs)
+schedule==1.2.2
+
+# HTTP requests
+requests==2.31.0
+
+# Email alerts
+# (uses built-in smtplib — no install needed)
+
+# Dashboard
+streamlit==1.40.0
+plotly==5.24.1
