@@ -74,7 +74,7 @@ ALWAYS respond in this exact JSON format, nothing else:
   "entry_price": 0.00,
   "stop_loss": 0.00,
   "take_profit": 0.00,
-  "position_size_pct": 0.00,
+  "position_size_pct": 0.00,  # decimal form e.g. 0.05 means 5%, never exceed 0.05 for stocks or 0.02 for crypto
   "confidence": "MEDIUM" | "HIGH",
   "reason": "max 2 sentences explaining your decision",
   "indicators_agreed": 0,
@@ -205,12 +205,12 @@ def get_claude_decision(prompt: str) -> Optional[dict]:
 class ConservativeStrategy:
 
     def __init__(self, alpaca: AlpacaClient):
-        self.alpaca          = alpaca
-        self.config          = CONSERVATIVE
+        self.alpaca           = alpaca
+        self.config           = CONSERVATIVE
         self.today_open_value = None
-        self.stopped_today   = False
-        self.killed          = False
-        self.last_date       = None
+        self.stopped_today    = False
+        self.killed           = False
+        self.last_date        = None
 
     def _reset_daily_state(self):
         """Resets daily tracking at start of each new trading day."""
@@ -224,34 +224,34 @@ class ConservativeStrategy:
             )
 
     def _check_crypto_stops(self):
-    """
-    Checks all open crypto positions against their stop prices.
-    Sells any position that has breached its stop.
-    """
-    positions = get_crypto_positions()
-    if not positions:
-        return
+        """
+        Checks all open crypto positions against their stop prices.
+        Sells any position that has breached its stop.
+        """
+        positions = get_crypto_positions()
+        if not positions:
+            return
 
-    for symbol, pos in list(positions.items()):
-        if pos.get("strategy") != "Conservative":
-            continue
-        try:
-            current_price = self.alpaca.get_crypto_price(symbol)
-            if not current_price:
+        for symbol, pos in list(positions.items()):
+            if pos.get("strategy") != "Conservative":
                 continue
+            try:
+                current_price = self.alpaca.get_crypto_price(symbol)
+                if not current_price:
+                    continue
 
-            if current_price <= pos["stop_price"]:
-                logger.warning(
-                    f"[Conservative] 🛑 Crypto stop hit: {symbol} "
-                    f"current ${current_price:,.2f} <= stop ${pos['stop_price']:,.2f}"
-                )
-                self.alpaca.place_crypto_stop_sell(symbol, pos["qty"])
-                remove_crypto_position(symbol)
+                if current_price <= pos["stop_price"]:
+                    logger.warning(
+                        f"[Conservative] 🛑 Crypto stop hit: {symbol} "
+                        f"current ${current_price:,.2f} <= stop ${pos['stop_price']:,.2f}"
+                    )
+                    self.alpaca.place_crypto_stop_sell(symbol, pos["qty"])
+                    remove_crypto_position(symbol)
 
-        except Exception as e:
-            logger.error(f"[Conservative] Error checking stop for {symbol}: {e}")
-        
-        def run_cycle(self) -> List[dict]:
+            except Exception as e:
+                logger.error(f"[Conservative] Error checking stop for {symbol}: {e}")
+
+    def run_cycle(self) -> List[dict]:
         """
         Runs one full hourly cycle across all symbols.
         Returns list of decisions made this cycle.
@@ -265,7 +265,7 @@ class ConservativeStrategy:
         if self.stopped_today:
             logger.info("[Conservative] Daily stop active — skipping cycle.")
             return []
-        
+
         # Check crypto stop-losses first
         self._check_crypto_stops()
 
@@ -338,7 +338,6 @@ class ConservativeStrategy:
                     )
                     continue
 
-                # Build prompt and get Claude's decision
                 # Gather all signals
                 news          = get_news_sentiment(symbol)
                 earnings      = check_earnings_veto(symbol)
@@ -408,7 +407,7 @@ class ConservativeStrategy:
                             symbol=symbol,
                             side="buy",
                             qty=qty,
-                            limit_price=price * 1.001,  # 0.1% above for fill
+                            limit_price=price * 1.001,
                             take_profit=take_profit,
                             stop_loss=stop_loss,
                         )
@@ -436,10 +435,10 @@ class ConservativeStrategy:
                             cash -= portfolio_value * position_pct
 
                 decisions.append({
-                    "symbol":   symbol,
-                    "action":   action,
-                    "reason":   decision.get("reason", ""),
-                    "regime":   regime["regime"],
+                    "symbol":     symbol,
+                    "action":     action,
+                    "reason":     decision.get("reason", ""),
+                    "regime":     regime["regime"],
                     "confidence": decision.get("confidence", ""),
                 })
 

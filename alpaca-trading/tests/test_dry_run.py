@@ -272,6 +272,9 @@ for i, d in enumerate(all_decisions):
 
     if "position_size_pct" in d:
         pct = d["position_size_pct"]
+        # Normalize if Claude returned whole number (e.g. 10 instead of 0.10)
+        if pct > 1:
+            pct = pct / 100
         check(
             f"Decision {i+1} position size within limits",
             0 <= pct <= 0.20,

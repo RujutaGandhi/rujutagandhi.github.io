@@ -74,7 +74,7 @@ ALWAYS respond in this exact JSON format, nothing else:
   "entry_price": 0.00,
   "stop_loss": 0.00,
   "take_profit": 0.00,
-  "position_size_pct": 0.00,  # decimal form e.g. 0.10 means 10%, never exceed 0.15 for stocks or 0.20 for crypto
+  "position_size_pct": 0.00, # decimal form e.g. 0.10 means 10%, never exceed 0.15 for stocks or 0.20 for crypto
   "confidence": "LOW" | "MEDIUM" | "HIGH",
   "reason": "max 2 sentences explaining your decision",
   "indicators_agreed": 0,
@@ -234,32 +234,32 @@ class AggressiveStrategy:
             )
 
     def _check_crypto_stops(self):
-    """
-    Checks all open crypto positions against their stop prices.
-    Sells any position that has breached its stop.
-    """
-    positions = get_crypto_positions()
-    if not positions:
-        return
+        """
+        Checks all open crypto positions against their stop prices.
+        Sells any position that has breached its stop.
+        """
+        positions = get_crypto_positions()
+        if not positions:
+            return
 
-    for symbol, pos in list(positions.items()):
-        if pos.get("strategy") != "Aggressive":
-            continue
-        try:
-            current_price = self.alpaca.get_crypto_price(symbol)
-            if not current_price:
+        for symbol, pos in list(positions.items()):
+            if pos.get("strategy") != "Aggressive":
                 continue
+            try:
+                current_price = self.alpaca.get_crypto_price(symbol)
+                if not current_price:
+                    continue
 
-            if current_price <= pos["stop_price"]:
-                logger.warning(
-                    f"[Aggressive] 🛑 Crypto stop hit: {symbol} "
-                    f"current ${current_price:,.2f} <= stop ${pos['stop_price']:,.2f}"
-                )
-                self.alpaca.place_crypto_stop_sell(symbol, pos["qty"])
-                remove_crypto_position(symbol)
+                if current_price <= pos["stop_price"]:
+                    logger.warning(
+                        f"[Aggressive] 🛑 Crypto stop hit: {symbol} "
+                        f"current ${current_price:,.2f} <= stop ${pos['stop_price']:,.2f}"
+                    )
+                    self.alpaca.place_crypto_stop_sell(symbol, pos["qty"])
+                    remove_crypto_position(symbol)
 
-        except Exception as e:
-            logger.error(f"[Aggressive] Error checking stop for {symbol}: {e}")
+            except Exception as e:
+                logger.error(f"[Aggressive] Error checking stop for {symbol}: {e}")
 
     def run_cycle(self) -> List[dict]:
         """
@@ -275,7 +275,7 @@ class AggressiveStrategy:
         if self.stopped_today:
             logger.info("[Aggressive] Daily stop active — skipping cycle.")
             return []
-        
+
         # Check crypto stop-losses first
         self._check_crypto_stops()
 
@@ -392,7 +392,6 @@ class AggressiveStrategy:
                         self.config["crypto_cap_pct"] if is_crypto
                         else self.config["max_position_pct"]
                     )
-                   
                     raw_pct = decision.get("position_size_pct", max_pct * 0.5)
                     # Normalize if Claude returns whole number (e.g. 10 instead of 0.10)
                     if raw_pct > 1:
@@ -414,7 +413,7 @@ class AggressiveStrategy:
                             symbol=symbol,
                             side="buy",
                             qty=qty,
-                            limit_price=price * 1.002,  # 0.2% above for faster fills
+                            limit_price=price * 1.002,
                             take_profit=take_profit,
                             stop_loss=stop_loss,
                         )

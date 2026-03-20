@@ -574,6 +574,19 @@
     <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-text">Interactive Demos</div></div>
     <h2 class="section-heading">AI Demos</h2>
     <div class="demos-grid">
+      <div class="demo-card" onclick="openModal('trading-bot')" style="cursor:pointer;">
+      <div class="demo-icon">📈</div>
+      <h3>AI Paper Trading Bot</h3>
+      <p>A dual-strategy autonomous trading system powered by Claude AI. Two parallel strategies — Conservative and Aggressive — run 24/7 on real market data with weighted signal scoring, self-tuning daily reviews, and hard kill switches.</p>
+      <div class="demo-tech">
+        <span>Claude Sonnet</span>
+        <span>Alpaca Markets</span>
+        <span>Python</span>
+        <span>Streamlit</span>
+        <span>Render</span>
+      </div>
+      <span class="demo-link" style="cursor:pointer;">Learn more →</span>
+      </div>
       <div class="demo-card" onclick="openModal('babu')" style="cursor:pointer;">
         <div class="demo-icon">🐒</div>
         <h3>Babu Learns Gujarati V2.2</h3>
@@ -652,6 +665,98 @@
 <footer>  © 2026 Rujuta Gandhi · Built with curiosity and caffeine</footer>
 
 <!-- DEMO MODAL -->
+<div class="modal-overlay" id="modal-overlay-trading-bot" onclick="handleOverlayClickById(event, 'modal-overlay-trading-bot')">
+  <div class="modal" id="modal-trading-bot">
+    <div class="modal-header">
+      <div>
+        <div class="modal-icon">📈</div>
+        <div class="modal-title">AI Paper Trading Bot</div>
+        <div class="modal-subtitle">Dual-Strategy Agentic System · Claude AI · Alpaca Markets · Render</div>
+      </div>
+      <button class="modal-close" onclick="closeModalById('modal-overlay-trading-bot')">✕</button>
+    </div>
+    <div class="modal-body">
+ 
+      <div class="modal-section">
+        <div class="modal-section-label">The Problem</div>
+        <p>Most AI trading demos are either toy examples with no real architecture, or black-box systems with no explainability. I wanted to build something that demonstrates genuine AI PM thinking: a production-grade agentic system with documented tradeoffs, risk management guardrails, and a self-improving feedback loop — all running live on real market data.</p>
+      </div>
+ 
+      <div class="modal-section">
+        <div class="modal-section-label">What I Built</div>
+        <p>A dual-strategy autonomous paper trading bot that runs 24/7 on Render, scanning US stocks and crypto every hour. The Conservative strategy ($1,000, Bridgewater-style discipline) and Aggressive strategy ($1,000, Citadel-style momentum) operate in parallel on separate Alpaca paper accounts. Claude makes every buy/sell/hold decision using a weighted 8-signal scoring engine. A self-tuning end-of-day review fires at 4:05pm ET — Claude analyzes the day's trades and adjusts RSI thresholds, ATR multipliers, and strategy mode for the next session.</p>
+      </div>
+ 
+      <div class="modal-section">
+        <div class="modal-section-label">Key Product Decisions</div>
+        <ul>
+          <li><strong>Claude over Finnhub for sentiment</strong> — Pre-computed sentiment scores can't distinguish "beat earnings but weak guidance" from "clean beat." Claude reads actual headlines and reasons about nuance. Same cost per call, better signal quality.</li>
+          <li><strong>Weighted scoring engine over vote counting</strong> — RSI and MACD are both momentum indicators — they correlate. Treating them as independent votes inflates confidence. Built a point-weighted system (news +3, congressional +2, regime +2, each technical +1) so signal quality determines weight, not just count.</li>
+          <li><strong>Two separate Alpaca paper accounts</strong> — One shared $2,000 account means kill switches fire at the wrong portfolio threshold and strategies compete for cash. Separate accounts give each strategy true independence and accurate floor monitoring.</li>
+          <li><strong>Earnings guard as a hard veto</strong> — No amount of bullish signals justifies holding into an unpredictable binary event. Alpaca's earnings calendar API blocks new positions within 2 days of earnings regardless of score.</li>
+          <li><strong>Manual crypto stop-loss in code</strong> — Alpaca doesn't support bracket orders for crypto. Rather than removing stop protection, implemented a state-persisted stop-loss checker that runs every cycle and triggers a market sell if price breaches the ATR-based stop.</li>
+          <li><strong>Health endpoint to avoid Render spin-down</strong> — Free tier Web Services sleep after inactivity. Added a lightweight HTTP health server running in a background thread so cron-job.org pings keep the bot alive 24/7.</li>
+          <li><strong>Whole shares for stocks</strong> — Alpaca doesn't support bracket orders on fractional shares. Rounded position sizes to whole shares to enable automatic stop-loss and take-profit on all stock trades.</li>
+          <li><strong>Self-tuning daily review loop</strong> — Static bots don't learn. Claude reviews its own trade log at 4:05pm ET, identifies what worked and what didn't, and outputs JSON parameter adjustments with safety bounds checking to prevent runaway values.</li>
+          <li><strong>SendGrid over Gmail SMTP</strong> — Render's free tier blocks outbound SMTP. Switched to SendGrid HTTP API (Mail Send only, restricted key) which works on all Render tiers and is more secure by design.</li>
+          <li><strong>Phase-based build with eval gates</strong> — Built in 5 phases, each with its own test file before proceeding. 22 checks in test_dry_run.py, 35 in test_signals.py, 25 in test_phase5.py — all passing before deployment.</li>
+        </ul>
+      </div>
+ 
+      <div class="modal-section">
+        <div class="modal-section-label">Signal Architecture</div>
+        <div class="modal-tech">
+          <span>News Sentiment — Claude (+3)</span>
+          <span>Congressional Trades (+2)</span>
+          <span>Market Regime / ADX (+2)</span>
+          <span>Fear & Greed Index (+2)</span>
+          <span>RSI (+1)</span>
+          <span>MACD (+1)</span>
+          <span>EMA Crossover (+1)</span>
+          <span>Volume Ratio (+1)</span>
+          <span>Earnings Veto (hard block)</span>
+        </div>
+      </div>
+ 
+      <div class="modal-section">
+        <div class="modal-section-label">Learning Objective & Summary</div>
+        <p>My goal was to build a real agentic system — not a demo — and document every architectural decision. I wanted hands-on exposure to LLM-as-decision-maker patterns, risk management architecture, financial APIs, and the practical tradeoffs of running AI systems in production. The most important lesson: prompt framing matters as much as model choice. Telling Claude it's a "former Bridgewater portfolio manager who survived the 2008 crash" produces materially different risk reasoning than a generic system prompt.</p>
+      </div>
+ 
+      <div class="modal-section">
+        <div class="modal-section-label">Tech Stack</div>
+        <div class="modal-tech">
+          <span>Claude Sonnet (Anthropic API)</span>
+          <span>Alpaca Markets API</span>
+          <span>Python 3.11</span>
+          <span>Streamlit</span>
+          <span>Render.com</span>
+          <span>SendGrid</span>
+          <span>Alpaca News API</span>
+          <span>CNN Fear & Greed</span>
+          <span>Capitol Trades API</span>
+          <span>pandas / numpy</span>
+          <span>cron-job.org</span>
+        </div>
+      </div>
+ 
+      <div class="modal-section">
+        <div class="modal-section-label">What's Next</div>
+        <ul>
+          <li><strong>Dashboard V2:</strong> Signal scorecard per trade, Conservative vs Aggressive vs S&P500 P&L chart, news headlines panel showing what Claude read for each decision</li>
+          <li><strong>Options layer:</strong> Aggressive strategy V2 — use Alpaca Options API to buy calls/puts on high-conviction signals for leveraged upside with capped downside</li>
+          <li><strong>Real money deployment:</strong> After 2 weeks of paper trading validation with documented Sharpe ratio and win rate</li>
+        </ul>
+      </div>
+ 
+      <div class="modal-actions">
+        <a href="https://alpaca-trading-dashboard-aanl.onrender.com" target="_blank" class="modal-btn-primary">Live Dashboard →</a>
+        <a href="https://github.com/RujutaGandhi/rujutagandhi.github.io/tree/main/alpaca-trading" target="_blank" class="modal-btn-ghost">View on GitHub</a>
+      </div>
+ 
+    </div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="modal-overlay-babu" onclick="handleOverlayClickById(event, 'modal-overlay-babu')">
   <div class="modal" id="modal-babu">
