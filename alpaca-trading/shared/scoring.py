@@ -11,6 +11,7 @@ Point System:
 SIGNAL                  BULLISH    BEARISH    NOTES
 ─────────────────────────────────────────────────────
 News sentiment          +3         -3         Claude-scored
+Social sentiment        +2         -2         Reddit + StockTwits
 Congressional trades    +2         -1         45-day lag
 Regime (ADX)            +2          0         TREND only
 Fear & Greed            +2         -1         Macro filter
@@ -26,8 +27,8 @@ Thresholds:
   Conservative: 6+ points to trade
   Aggressive:   4+ points to trade
 
-Max possible bullish score: 13 points
-Min possible bearish score: -8 points
+Max possible bullish score: 15 points
+Min possible bearish score: -10 points
 """
 
 import logging
@@ -47,11 +48,12 @@ AGGRESSIVE_THRESHOLD   = 4
 # ============================================================
 
 def calculate_score(
-    signals:       dict,
-    regime:        dict,
-    news:          dict,
-    fear_greed:    dict,
-    congressional: dict,
+    signals:          dict,
+    regime:           dict,
+    news:             dict,
+    fear_greed:       dict,
+    congressional:    dict,
+    social_sentiment: dict = None,
 ) -> dict:
     """
     Calculates the full weighted score for a trading setup.
@@ -92,6 +94,24 @@ def calculate_score(
         "signal": news_sentiment,
         "points": pts,
         "detail": news.get("top_headline", "No headline"),
+    }
+
+    # ── Social Sentiment (+2 / -2) ───────────────────────────
+    social = social_sentiment or {}
+    social_sent = social.get("sentiment", "NEUTRAL")
+    if social_sent == "BULLISH":
+        social_pts = 2
+        bullish   += social_pts
+    elif social_sent == "BEARISH":
+        social_pts = -2
+        bearish   += 2
+    else:
+        social_pts = 0
+
+    breakdown["social_sentiment"] = {
+        "signal": social_sent,
+        "points": social_pts,
+        "detail": social.get("top_signal", "No social data"),
     }
 
     # ── Congressional Trades (+2 / -1) ───────────────────────
@@ -277,19 +297,20 @@ def _build_scorecard(
     lines.append(f"{'─' * 52}")
 
     signal_order = [
-        "news_sentiment", "congressional", "regime",
+        "news_sentiment", "social_sentiment", "congressional", "regime",
         "fear_greed", "rsi", "macd", "ema", "volume"
     ]
 
     labels = {
-        "news_sentiment": "News Sentiment (Claude)",
-        "congressional":  "Congressional Trades",
-        "regime":         "Market Regime (ADX)",
-        "fear_greed":     "Fear & Greed Index",
-        "rsi":            "RSI",
-        "macd":           "MACD",
-        "ema":            "EMA Crossover",
-        "volume":         "Volume Confirmation",
+        "news_sentiment":   "News Sentiment (Claude)",
+        "social_sentiment": "Social Sentiment (Reddit/ST)",
+        "congressional":    "Congressional Trades",
+        "regime":           "Market Regime (ADX)",
+        "fear_greed":       "Fear & Greed Index",
+        "rsi":              "RSI",
+        "macd":             "MACD",
+        "ema":              "EMA Crossover",
+        "volume":           "Volume Confirmation",
     }
 
     for key in signal_order:

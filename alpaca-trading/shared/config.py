@@ -27,26 +27,38 @@ ALERT_EMAIL_TO       = os.getenv("ALERT_EMAIL_TO")
 # ============================================================
 # TRADING UNIVERSE
 # ============================================================
-CONSERVATIVE_STOCKS = [
-    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
-    "META", "TSLA", "JPM", "V", "UNH"
+
+# Symbols NEVER traded — trading restrictions or other reasons
+# Add any symbols here you cannot or should not trade
+EXCLUDED_SYMBOLS = [
+    "AMZN",   # Trading restrictions
 ]
 
+# Symbols ALWAYS included in every scan regardless of screener
+PERMANENT_SYMBOLS = [
+    "UBER",   # Always monitored
+]
+
+# Crypto universes — fixed (screener not applicable for crypto)
 CONSERVATIVE_CRYPTO = [
     "BTC/USD", "ETH/USD"
-]
-
-AGGRESSIVE_STOCKS = [
-    # Large cap
-    "AAPL", "MSFT", "NVDA", "TSLA", "META",
-    # Small cap / momentum
-    "PLTR", "RKLB", "IONQ", "SMCI", "MSTR",
-    "HOOD", "COIN", "SOFI", "OPEN", "ACHR"
 ]
 
 AGGRESSIVE_CRYPTO = [
     "BTC/USD", "ETH/USD",
     "SOL/USD", "DOGE/USD", "AVAX/USD"
+]
+
+# Legacy fallback stock lists — used if screener fails
+CONSERVATIVE_STOCKS_FALLBACK = [
+    "AAPL", "MSFT", "GOOGL", "NVDA",
+    "META", "TSLA", "JPM", "V", "UBER"
+]
+
+AGGRESSIVE_STOCKS_FALLBACK = [
+    "AAPL", "MSFT", "NVDA", "TSLA", "META",
+    "PLTR", "RKLB", "IONQ", "SMCI", "MSTR",
+    "HOOD", "COIN", "SOFI", "UBER", "ACHR"
 ]
 
 # ============================================================
@@ -56,15 +68,15 @@ CONSERVATIVE = {
     "name": "Conservative",
     "starting_capital": float(os.getenv("CONSERVATIVE_STARTING_CAPITAL", 1000)),
     "frequency_minutes": int(os.getenv("TRADING_FREQUENCY_MINUTES", 60)),
-    "max_position_pct": 0.05,        # 5% max per trade
-    "crypto_cap_pct": 0.02,          # 2% max in any crypto position
-    "atr_stop_multiplier": 1.5,      # Stop loss = 1.5x ATR
-    "take_profit_multiplier": 3.0,   # Take profit = 3x risk
+    "max_position_pct": 0.05,
+    "crypto_cap_pct": 0.02,
+    "atr_stop_multiplier": 1.5,
+    "take_profit_multiplier": 3.0,
     "max_open_positions": 3,
-    "signals_required": 3,           # 3 of 5 indicators must agree
-    "daily_stop_pct": 0.15,          # Stop trading if down 15% today
-    "portfolio_floor": 700,          # Kill switch: halt permanently if below $700
-    "stocks": CONSERVATIVE_STOCKS,
+    "signals_required": 3,
+    "daily_stop_pct": 0.15,
+    "portfolio_floor": 700,
+    "stocks": CONSERVATIVE_STOCKS_FALLBACK,   # Fallback only — screener used at runtime
     "crypto": CONSERVATIVE_CRYPTO,
     "log_file": "logs/conservative.log",
 }
@@ -76,15 +88,15 @@ AGGRESSIVE = {
     "name": "Aggressive",
     "starting_capital": float(os.getenv("AGGRESSIVE_STARTING_CAPITAL", 1000)),
     "frequency_minutes": int(os.getenv("TRADING_FREQUENCY_MINUTES", 60)),
-    "max_position_pct": 0.15,        # 15% max per trade
-    "crypto_cap_pct": 0.20,          # 20% max in any crypto position
-    "atr_stop_multiplier": 2.5,      # Wider stops for volatile assets
-    "take_profit_multiplier": 5.0,   # Bigger targets
+    "max_position_pct": 0.15,
+    "crypto_cap_pct": 0.20,
+    "atr_stop_multiplier": 2.5,
+    "take_profit_multiplier": 5.0,
     "max_open_positions": 5,
-    "signals_required": 2,           # Only 2 of 5 indicators need to agree
-    "daily_stop_pct": 0.20,          # Stop trading if down 20% today
-    "portfolio_floor": 600,          # Kill switch: halt permanently if below $600
-    "stocks": AGGRESSIVE_STOCKS,
+    "signals_required": 2,
+    "daily_stop_pct": 0.20,
+    "portfolio_floor": 600,
+    "stocks": AGGRESSIVE_STOCKS_FALLBACK,   # Fallback only — screener used at runtime
     "crypto": AGGRESSIVE_CRYPTO,
     "log_file": "logs/aggressive.log",
 }

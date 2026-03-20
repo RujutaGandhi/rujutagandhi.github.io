@@ -1,16 +1,16 @@
 """
-conservative/strategy.py
-========================
-Conservative strategy — disciplined, trend-following.
+aggressive/strategy.py
+======================
+Aggressive strategy — momentum-driven, higher risk tolerance.
 
 Rules:
-- Trades large cap stocks + BTC/ETH only
-- Requires 3 of 5 indicators to agree
-- Only trades in TREND regime
-- Max 3 open positions
-- Max 5% position size (2% for crypto)
-- Daily stop: 15% loss
-- Kill switch: portfolio < $700
+- Trades large cap + small cap stocks + BTC/ETH + altcoins
+- Requires only 2 of 5 indicators to agree
+- Trades in both TREND and RANGE regimes
+- Max 5 open positions
+- Max 15% position size (20% for crypto)
+- Daily stop: 20% loss
+- Kill switch: portfolio < $600
 """
 
 import json
@@ -19,11 +19,9 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Optional, List
 
-from shared.state import save_crypto_position, remove_crypto_position, get_crypto_positions
-
 import anthropic
 
-from shared.config import CONSERVATIVE, INDICATORS, CLAUDE_MODEL, CLAUDE_MAX_TOKENS, ANTHROPIC_API_KEY
+from shared.config import AGGRESSIVE, INDICATORS, CLAUDE_MODEL, CLAUDE_MAX_TOKENS, ANTHROPIC_API_KEY
 from shared.alpaca_client import AlpacaClient
 from shared.indicators import compute_all, get_latest_signals
 from shared.regime_filter import detect_regime, is_regime_match, regime_summary
@@ -37,37 +35,39 @@ from shared.scoring import calculate_score, is_trade_eligible, score_summary
 from shared.social_sentiment import get_social_sentiment
 from shared.screener import get_screened_symbols, get_crypto_symbols
 
+from shared.state import save_crypto_position, remove_crypto_position, get_crypto_positions
+
 logger = logging.getLogger(__name__)
 ET = ZoneInfo("America/New_York")
 
 # ============================================================
-# SYSTEM PROMPT — Conservative persona + hard rules
+# SYSTEM PROMPT — Aggressive persona + hard rules
 # ============================================================
 
 SYSTEM_PROMPT = """
-You are a former institutional portfolio manager with 20 years of experience
-at Bridgewater Associates managing risk-first equity strategies. You have
-survived the 2008 crash, the 2020 COVID collapse, and the 2022 crypto winter
-by always protecting capital first. You are disciplined, patient, and
-methodical. You would rather miss 10 good trades than take 1 bad one.
+You are a former prop trader at Citadel with 15 years of experience in
+momentum and breakout strategies across equities and crypto. You have
+a track record of finding asymmetric risk/reward setups early. You are
+opportunistic, decisive, and comfortable with volatility. You cut losers
+fast and let winners run.
 
-You are now managing a $1,000 paper trading portfolio of large-cap US stocks and BTC/ETH.
-Your core philosophy: capital preservation first, growth second. Every decision
-must pass your strict risk filter before execution.
+You are now managing a $1,000 paper trading portfolio across large-cap stocks,
+small-cap momentum plays, and crypto. Your edge is acting decisively on
+emerging signals before they become obvious to the crowd.
 
 HARD RULES — cannot be overridden under any circumstances:
-- If portfolio_value < 700: output STOP_ALL immediately
-- If daily_loss_pct > 15: output STOP_TODAY immediately
-- Never recommend position_size_pct > 5% for stocks
-- Never recommend position_size_pct > 2% for crypto
-- Maximum 3 open positions at any time
+- If portfolio_value < 600: output STOP_ALL immediately
+- If daily_loss_pct > 20: output STOP_TODAY immediately
+- Never recommend position_size_pct > 15% for stocks
+- Never recommend position_size_pct > 20% for crypto
+- Maximum 5 open positions at any time
 - No new trades in last 30 minutes of market hours
 - If confidence is LOW: output HOLD
-- If regime is not TREND: output HOLD
-- Require at least 3 of 5 indicators to agree before BUY or SELL
 
-You will receive pre-filtered setups where indicators partially agree.
-Your job is final judgment — be strict.
+Unlike the conservative strategy, you can trade in both TREND and RANGE regimes.
+In TREND: favor momentum and breakout setups.
+In RANGE: favor mean reversion (buy oversold, sell overbought).
+You only need 2 of 5 indicators to agree — but size smaller on lower conviction.
 
 ALWAYS respond in this exact JSON format, nothing else:
 {
@@ -77,10 +77,11 @@ ALWAYS respond in this exact JSON format, nothing else:
   "stop_loss": 0.00,
   "take_profit": 0.00,
   "position_size_pct": 0.00,
-  "confidence": "MEDIUM" | "HIGH",
+  "confidence": "LOW" | "MEDIUM" | "HIGH",
   "reason": "max 2 sentences explaining your decision",
   "indicators_agreed": 0,
-  "regime": "TREND" | "RANGE" | "UNCLEAR"
+  "regime": "TREND" | "RANGE" | "UNCLEAR",
+  "strategy_type": "momentum" | "mean_reversion" | "breakout" | "hold"
 }
 """.strip()
 
@@ -102,35 +103,41 @@ def build_decision_prompt(
 ) -> str:
     """Builds the per-cycle prompt with live market data."""
 
-    daily_pnl      = portfolio_value - today_open_value
-    daily_pnl_pct  = (daily_pnl / today_open_value * 100) if today_open_value else 0
-    positions_str  = ", ".join(open_positions) if open_positions else "None"
+    daily_pnl     = portfolio_value - today_open_value
+    daily_pnl_pct = (daily_pnl / today_open_value * 100) if today_open_value else 0
+    positions_str = ", ".join(open_positions) if open_positions else "None"
 
-    # Count how many indicators agree on bullish signal
+    # Signal counts
     bullish_signals = 0
-    if signals.get("rsi_zone") == "oversold":         bullish_signals += 1
+    if signals.get("rsi_zone") == "oversold":              bullish_signals += 1
     if signals.get("macd") in ("bullish", "bullish_cross"): bullish_signals += 1
-    if signals.get("ema_signal") == "bullish":         bullish_signals += 1
-    if signals.get("volume_confirmed"):                bullish_signals += 1
-    if regime.get("regime") == "TREND" and signals.get("ema_slope", 0) > 0:
-        bullish_signals += 1
+    if signals.get("ema_signal") == "bullish":              bullish_signals += 1
+    if signals.get("volume_confirmed"):                     bullish_signals += 1
+    if regime.get("regime") == "TREND":                     bullish_signals += 1
 
-    # Count bearish signals
     bearish_signals = 0
-    if signals.get("rsi_zone") == "overbought":        bearish_signals += 1
+    if signals.get("rsi_zone") == "overbought":             bearish_signals += 1
     if signals.get("macd") in ("bearish", "bearish_cross"): bearish_signals += 1
-    if signals.get("ema_signal") == "bearish":         bearish_signals += 1
-    if signals.get("volume_confirmed") and bearish_signals >= 2: bearish_signals += 1
+    if signals.get("ema_signal") == "bearish":              bearish_signals += 1
+    if signals.get("volume_confirmed") and bearish_signals >= 1: bearish_signals += 1
+
+    # Suggest strategy type based on regime
+    if regime.get("regime") == "TREND":
+        strategy_hint = "Consider momentum or breakout strategy."
+    elif regime.get("regime") == "RANGE":
+        strategy_hint = "Consider mean reversion — buy oversold, sell overbought."
+    else:
+        strategy_hint = "Mixed signals — favor HOLD."
 
     return f"""
-CONSERVATIVE STRATEGY — DECISION REQUIRED
+AGGRESSIVE STRATEGY — DECISION REQUIRED
 
 Portfolio Status:
   Current value:    ${portfolio_value:,.2f}
   Today open value: ${today_open_value:,.2f}
   Daily P&L:        ${daily_pnl:,.2f} ({daily_pnl_pct:.1f}%)
   Cash available:   ${cash:,.2f}
-  Open positions:   {positions_str} ({len(open_positions)}/3 max)
+  Open positions:   {positions_str} ({len(open_positions)}/5 max)
 
 Asset: {symbol}
 Current price: ${signals.get('price', 0):,.4f}
@@ -139,26 +146,33 @@ Technical Signals:
   RSI({INDICATORS['rsi_period']}):    {signals.get('rsi', 'N/A')} → {signals.get('rsi_zone', 'N/A').upper()}
   MACD:          {signals.get('macd', 'N/A').upper()}
   EMA Signal:    {signals.get('ema_signal', 'N/A').upper()} (fast: {signals.get('ema_fast', 'N/A')}, slow: {signals.get('ema_slow', 'N/A')})
-  ATR:           {signals.get('atr', 'N/A')} (use for stop sizing: stop = price - 1.5×ATR)
+  ATR:           {signals.get('atr', 'N/A')} (stop sizing: stop = price - 2.5×ATR)
   Volume ratio:  {signals.get('volume_ratio', 'N/A')}x avg → {'CONFIRMED ✓' if signals.get('volume_confirmed') else 'WEAK ✗'}
 
 Signal Agreement:
   Bullish signals: {bullish_signals}/5
   Bearish signals: {bearish_signals}/5
-  Required to trade: 3/5 minimum
+  Required to trade: 2/5 minimum
 
 Market Regime:
   Regime:      {regime.get('regime', 'UNCLEAR')}
   ADX:         {regime.get('adx', 'N/A')}
   Description: {regime.get('description', 'N/A')}
 
+Strategy hint: {strategy_hint}
+
+Size guidance:
+  2 signals agree → use 5–8% position size
+  3 signals agree → use 8–12% position size
+  4+ signals agree → use 12–15% position size (stocks) / up to 20% (crypto)
+
 {score.get('scorecard', '')}
 
-Conservative threshold: 6 points minimum to trade.
-Current score: {score.get('total_score', 0)} points → {'✅ ELIGIBLE' if score.get('total_score', 0) >= 6 else '❌ BELOW THRESHOLD — output HOLD'}
+Aggressive threshold: 4 points minimum to trade.
+Current score: {score.get('total_score', 0)} points → {'✅ ELIGIBLE' if score.get('total_score', 0) >= 4 else '❌ BELOW THRESHOLD — output HOLD'}
 Earnings veto: {'🚫 YES — ' + earnings.get('veto_reason', '') if earnings.get('veto') else '✅ No earnings veto'}
 
-Make your final judgment. Be strict.
+Make your final judgment. Be decisive.
 """.strip()
 
 
@@ -167,10 +181,7 @@ Make your final judgment. Be strict.
 # ============================================================
 
 def get_claude_decision(prompt: str) -> Optional[dict]:
-    """
-    Sends prompt to Claude, parses JSON response.
-    Returns None if Claude fails or returns invalid JSON.
-    """
+    """Sends prompt to Claude, parses JSON response."""
     try:
         client   = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
@@ -182,14 +193,13 @@ def get_claude_decision(prompt: str) -> Optional[dict]:
 
         raw = response.content[0].text.strip()
 
-        # Strip markdown fences if present
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
 
         decision = json.loads(raw)
-        logger.debug(f"Claude decision: {decision}")
+        logger.debug(f"Claude (aggressive) decision: {decision}")
         return decision
 
     except json.JSONDecodeError as e:
@@ -204,11 +214,11 @@ def get_claude_decision(prompt: str) -> Optional[dict]:
 # MAIN STRATEGY RUNNER
 # ============================================================
 
-class ConservativeStrategy:
+class AggressiveStrategy:
 
     def __init__(self, alpaca: AlpacaClient):
         self.alpaca           = alpaca
-        self.config           = CONSERVATIVE
+        self.config           = AGGRESSIVE
         self.today_open_value = None
         self.stopped_today    = False
         self.killed           = False
@@ -222,7 +232,7 @@ class ConservativeStrategy:
             self.stopped_today    = False
             self.today_open_value = self.alpaca.get_portfolio_value()
             logger.info(
-                f"[Conservative] New day — open value: ${self.today_open_value:,.2f}"
+                f"[Aggressive] New day — open value: ${self.today_open_value:,.2f}"
             )
 
     def _check_crypto_stops(self):
@@ -235,7 +245,7 @@ class ConservativeStrategy:
             return
 
         for symbol, pos in list(positions.items()):
-            if pos.get("strategy") != "Conservative":
+            if pos.get("strategy") != "Aggressive":
                 continue
             try:
                 current_price = self.alpaca.get_crypto_price(symbol)
@@ -244,14 +254,14 @@ class ConservativeStrategy:
 
                 if current_price <= pos["stop_price"]:
                     logger.warning(
-                        f"[Conservative] 🛑 Crypto stop hit: {symbol} "
+                        f"[Aggressive] 🛑 Crypto stop hit: {symbol} "
                         f"current ${current_price:,.2f} <= stop ${pos['stop_price']:,.2f}"
                     )
                     self.alpaca.place_crypto_stop_sell(symbol, pos["qty"])
                     remove_crypto_position(symbol)
 
             except Exception as e:
-                logger.error(f"[Conservative] Error checking stop for {symbol}: {e}")
+                logger.error(f"[Aggressive] Error checking stop for {symbol}: {e}")
 
     def run_cycle(self) -> List[dict]:
         """
@@ -259,13 +269,13 @@ class ConservativeStrategy:
         Returns list of decisions made this cycle.
         """
         if self.killed:
-            logger.info("[Conservative] Bot killed — skipping cycle.")
+            logger.info("[Aggressive] Bot killed — skipping cycle.")
             return []
 
         self._reset_daily_state()
 
         if self.stopped_today:
-            logger.info("[Conservative] Daily stop active — skipping cycle.")
+            logger.info("[Aggressive] Daily stop active — skipping cycle.")
             return []
 
         # Check crypto stop-losses first
@@ -276,10 +286,10 @@ class ConservativeStrategy:
         open_positions  = self.alpaca.get_position_symbols()
         decisions       = []
 
-        # Check kill switch first
+        # Kill switch check
         if portfolio_value <= self.config["portfolio_floor"]:
             logger.warning(
-                f"[Conservative] 🔴 Kill switch: ${portfolio_value:.2f} "
+                f"[Aggressive] 🔴 Kill switch: ${portfolio_value:.2f} "
                 f"< ${self.config['portfolio_floor']}"
             )
             self.killed = True
@@ -287,14 +297,14 @@ class ConservativeStrategy:
             self.alpaca.close_all_positions()
             return [{"action": "STOP_ALL", "reason": "Portfolio below floor"}]
 
-        # Check daily stop
+        # Daily stop check
         if self.today_open_value:
             daily_loss_pct = (
                 (self.today_open_value - portfolio_value) / self.today_open_value
             )
             if daily_loss_pct >= self.config["daily_stop_pct"]:
                 logger.warning(
-                    f"[Conservative] 🟡 Daily stop: {daily_loss_pct:.1%} loss today"
+                    f"[Aggressive] 🟡 Daily stop: {daily_loss_pct:.1%} loss today"
                 )
                 self.stopped_today = True
                 return [{"action": "STOP_TODAY", "reason": "Daily loss threshold hit"}]
@@ -302,43 +312,39 @@ class ConservativeStrategy:
         # Skip if max positions reached
         if len(open_positions) >= self.config["max_open_positions"]:
             logger.info(
-                f"[Conservative] Max positions reached ({len(open_positions)}/3) — skipping."
+                f"[Aggressive] Max positions reached ({len(open_positions)}/5) — skipping."
             )
             return []
 
         # Get dynamic symbol list from screener
-        stock_symbols = get_screened_symbols("conservative")
-        crypto_symbols = get_crypto_symbols("conservative")
+        stock_symbols = get_screened_symbols("aggressive")
+        crypto_symbols = get_crypto_symbols("aggressive")
         all_symbols = stock_symbols + crypto_symbols
 
         for symbol in all_symbols:
-            # Skip if already holding
             alpaca_symbol = symbol.replace("/", "")
             if alpaca_symbol in open_positions or symbol in open_positions:
                 continue
 
             try:
-                # Fetch price history
                 df = self.alpaca.get_bars(symbol, lookback_days=30)
                 if df.empty:
                     continue
 
-                # Compute indicators
                 df = compute_all(df)
                 if df.empty:
                     continue
 
-                # Get latest signals
                 signals = get_latest_signals(df)
                 if not signals:
                     continue
 
-                # Check regime
                 regime = regime_summary(df)
-                if not is_regime_match(regime["regime"], "conservative"):
+
+                # Aggressive trades TREND and RANGE — only skip UNCLEAR
+                if not is_regime_match(regime["regime"], "aggressive"):
                     logger.debug(
-                        f"[Conservative] {symbol} — regime mismatch "
-                        f"({regime['regime']}), skipping."
+                        f"[Aggressive] {symbol} — regime UNCLEAR, skipping."
                     )
                     continue
 
@@ -360,8 +366,8 @@ class ConservativeStrategy:
                 )
 
                 # Check eligibility before calling Claude
-                eligible, reason = is_trade_eligible(score, earnings, "conservative")
-                logger.info(f"[Conservative] {symbol}: {score_summary(score, eligible, reason)}")
+                eligible, reason = is_trade_eligible(score, earnings, "aggressive")
+                logger.info(f"[Aggressive] {symbol}: {score_summary(score, eligible, reason)}")
 
                 if not eligible:
                     continue
@@ -385,14 +391,14 @@ class ConservativeStrategy:
 
                 action = decision.get("action", "HOLD")
 
-                # Execute if BUY
+                # Execute BUY
                 if action == "BUY" and cash > 10:
-                    is_crypto   = "/" in symbol
-                    max_pct     = (
+                    is_crypto    = "/" in symbol
+                    max_pct      = (
                         self.config["crypto_cap_pct"] if is_crypto
                         else self.config["max_position_pct"]
                     )
-                    raw_pct = decision.get("position_size_pct", max_pct)
+                    raw_pct = decision.get("position_size_pct", max_pct * 0.5)
                     # Normalize if Claude returns whole number (e.g. 10 instead of 0.10)
                     if raw_pct > 1:
                         raw_pct = raw_pct / 100
@@ -413,7 +419,7 @@ class ConservativeStrategy:
                             symbol=symbol,
                             side="buy",
                             qty=qty,
-                            limit_price=price * 1.001,
+                            limit_price=price * 1.002,
                             take_profit=take_profit,
                             stop_loss=stop_loss,
                         )
@@ -425,10 +431,10 @@ class ConservativeStrategy:
                                     entry_price=price,
                                     stop_price=price - (self.config["atr_stop_multiplier"] * signals["atr"]),
                                     qty=qty,
-                                    strategy="Conservative",
+                                    strategy="Aggressive",
                                 )
                             alert_trade_executed(
-                                strategy_name="Conservative",
+                                strategy_name="Aggressive",
                                 action="BUY",
                                 symbol=symbol,
                                 qty=qty,
@@ -441,22 +447,24 @@ class ConservativeStrategy:
                             cash -= portfolio_value * position_pct
 
                 decisions.append({
-                    "symbol":     symbol,
-                    "action":     action,
-                    "reason":     decision.get("reason", ""),
-                    "regime":     regime["regime"],
-                    "confidence": decision.get("confidence", ""),
+                    "symbol":        symbol,
+                    "action":        action,
+                    "reason":        decision.get("reason", ""),
+                    "regime":        regime["regime"],
+                    "confidence":    decision.get("confidence", ""),
+                    "strategy_type": decision.get("strategy_type", ""),
                 })
 
                 logger.info(
-                    f"[Conservative] {symbol}: {action} | "
+                    f"[Aggressive] {symbol}: {action} | "
                     f"Regime: {regime['regime']} | "
+                    f"Type: {decision.get('strategy_type', '')} | "
                     f"Confidence: {decision.get('confidence', '')} | "
                     f"{decision.get('reason', '')}"
                 )
 
             except Exception as e:
-                logger.error(f"[Conservative] Error processing {symbol}: {e}")
+                logger.error(f"[Aggressive] Error processing {symbol}: {e}")
                 continue
 
         return decisions
