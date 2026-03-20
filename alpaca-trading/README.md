@@ -27,6 +27,7 @@ Two parallel trading strategies run 24/7 on Render, scanning US stocks and crypt
 | Signal | Points | Source |
 |---|---|---|
 | News sentiment (Claude) | +3 / -3 | Alpaca News API → Claude |
+| Social sentiment (Reddit/StockTwits) | +2 / -2 | Reddit API + StockTwits API → Claude |
 | Congressional trades | +2 / -1 | Capitol Trades API |
 | Market regime (ADX) | +2 / 0 | Computed from price data |
 | Fear & Greed Index | +2 to -1 | CNN Fear & Greed |
@@ -94,12 +95,15 @@ alpaca-trading/
 │   ├── scoring.py           # Weighted point system (all 8 signals)
 │   ├── review.py            # End-of-day Claude review + parameter tuning
 │   └── state.py             # Persists adjustments to state.json
+│   ├── social_sentiment.py  # Reddit + StockTwits → Claude sentiment scoring
+│   ├── screener.py          # Dynamic symbol screener via Alpaca API
 ├── tests/
 │   ├── test_config.py       # Level 1: API key validation
 │   ├── test_connection.py   # Level 2: Alpaca connection + data pipeline
 │   ├── test_dry_run.py      # Level 3: Full cycle without placing orders
 │   ├── test_signals.py      # Phase 1-4 signal module tests
 │   └── test_phase5.py       # Phase 5 state + review loop tests
+│   └── test_phase6.py       # Phase 6: screener, social sentiment, exclusions
 ├── main.py                  # Entry point — runs both strategies + health server
 ├── dashboard.py             # Streamlit performance dashboard
 ├── requirements.txt
@@ -142,6 +146,8 @@ python3 tests/test_connection.py
 python3 tests/test_dry_run.py
 python3 tests/test_signals.py
 python3 tests/test_phase5.py
+python3 tests/test_phase6.py
+
 ```
 
 ### 4. Run locally
@@ -165,6 +171,9 @@ streamlit run dashboard.py   # separate terminal
 
 **Self-tuning daily review** — Claude reads its own trade log at 4:05pm ET, identifies patterns, and outputs JSON parameter adjustments within safety bounds.
 
+**Dynamic screener over fixed stock list** — Instead of always scanning the same 10 stocks, the screener fetches the most active and highest momentum US stocks from Alpaca each cycle. UBER is always included. AMZN is permanently excluded due to trading restrictions.
+
+**Reddit + StockTwits sentiment** — Retail momentum often shows up on social media before it shows up in price. Both APIs are free with no auth required. Claude scores the combined signal, adding up to +2/-2 to the weighted scoring engine.
 ---
 
 ## Tech Stack

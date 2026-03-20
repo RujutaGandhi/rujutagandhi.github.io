@@ -684,7 +684,7 @@
  
       <div class="modal-section">
         <div class="modal-section-label">What I Built</div>
-        <p>A dual-strategy autonomous paper trading bot that runs 24/7 on Render, scanning US stocks and crypto every hour. The Conservative strategy ($1,000, Bridgewater-style discipline) and Aggressive strategy ($1,000, Citadel-style momentum) operate in parallel on separate Alpaca paper accounts. Claude makes every buy/sell/hold decision using a weighted 8-signal scoring engine. A self-tuning end-of-day review fires at 4:05pm ET — Claude analyzes the day's trades and adjusts RSI thresholds, ATR multipliers, and strategy mode for the next session.</p>
+        <p>A dual-strategy autonomous paper trading bot that runs 24/7 on Render, scanning US stocks and crypto every hour. The Conservative strategy ($1,000, Bridgewater-style discipline) and Aggressive strategy ($1,000, Citadel-style momentum) operate in parallel on separate Alpaca paper accounts. Claude makes every buy/sell/hold decision using a weighted 9-signal scoring engine. A dynamic screener replaces the fixed stock list — fetching the most active and highest-momentum US stocks from Alpaca each cycle so the bot always trades what's actually moving. A self-tuning end-of-day review fires at 4:05pm ET — Claude analyzes the day's trades and adjusts RSI thresholds, ATR multipliers, and strategy mode for the next session.</p>
       </div>
  
       <div class="modal-section">
@@ -700,6 +700,8 @@
           <li><strong>Self-tuning daily review loop</strong> — Static bots don't learn. Claude reviews its own trade log at 4:05pm ET, identifies what worked and what didn't, and outputs JSON parameter adjustments with safety bounds checking to prevent runaway values.</li>
           <li><strong>SendGrid over Gmail SMTP</strong> — Render's free tier blocks outbound SMTP. Switched to SendGrid HTTP API (Mail Send only, restricted key) which works on all Render tiers and is more secure by design.</li>
           <li><strong>Phase-based build with eval gates</strong> — Built in 5 phases, each with its own test file before proceeding. 22 checks in test_dry_run.py, 35 in test_signals.py, 25 in test_phase5.py — all passing before deployment.</li>
+          <li><strong>Dynamic screener over fixed stock list</strong> — Instead of always scanning the same 10 stocks, the screener fetches the most active and highest-momentum US stocks from Alpaca each cycle. UBER is permanently included. AMZN is permanently excluded due to trading restrictions — enforced at the config level and tested in the Phase 6 test suite.</li>
+<li><strong>Reddit + StockTwits social sentiment</strong> — Retail momentum often appears on social media before price moves. Both APIs are free with no authentication required. Claude scores the combined signal (+2 bullish / -2 bearish) as the 9th weighted signal in the scoring engine.</li>
         </ul>
       </div>
  
@@ -715,6 +717,7 @@
           <span>EMA Crossover (+1)</span>
           <span>Volume Ratio (+1)</span>
           <span>Earnings Veto (hard block)</span>
+          <span>Reddit API / StockTwits API (social sentiment) (+2)</span>
         </div>
       </div>
  
@@ -737,6 +740,8 @@
           <span>Capitol Trades API</span>
           <span>pandas / numpy</span>
           <span>cron-job.org</span>
+          <span>Reddit API (free, no auth)</span>
+          <span>StockTwits API (free, no auth)</span>
         </div>
       </div>
  
