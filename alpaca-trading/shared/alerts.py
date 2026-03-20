@@ -3,70 +3,58 @@ shared/alerts.py
 ================
 Sends email alerts when kill switches trigger.
 
-Triggers:
-- Portfolio value drops below floor ($700 conservative / $600 aggressive)
-- Daily loss exceeds threshold (15% conservative / 20% aggressive)
-- Bot starts up (confirmation it's running)
-- Bot shuts down (confirmation it stopped)
-
-Uses Gmail SMTP with App Password from .env
+Uses SendGrid API (HTTP) — works on Render free tier.
+SendGrid key restricted to Mail Send only for security.
 """
 
-import smtplib
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from shared.config import (
-    ALERT_EMAIL_FROM,
-    ALERT_EMAIL_PASSWORD,
-    ALERT_EMAIL_TO,
-)
+import requests
+
+from shared.config import ALERT_EMAIL_FROM, ALERT_EMAIL_TO
 
 logger = logging.getLogger(__name__)
 ET = ZoneInfo("America/New_York")
 
+SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send"
 
-# ============================================================
-# CORE EMAIL SENDER
-# ============================================================
 
 def send_email(subject: str, body: str) -> bool:
-    """
-    Sends a plain-text email via Gmail SMTP.
-
-    Returns True if sent successfully, False if failed.
-    Failure is logged but never crashes the bot —
-    a failed alert should not stop trading.
-    """
+    api_key = os.getenv("SENDGRID_API_KEY")
+    if not api_key:
+        logger.error("❌ SENDGRID_API_KEY not set — cannot send email")
+        return False
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"]    = ALERT_EMAIL_FROM
-        msg["To"]      = ALERT_EMAIL_TO
-
-        msg.attach(MIMEText(body, "plain"))
-
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(ALERT_EMAIL_FROM, ALERT_EMAIL_PASSWORD)
-            server.sendmail(ALERT_EMAIL_FROM, ALERT_EMAIL_TO, msg.as_string())
-
-        logger.info(f"✅ Alert sent: {subject}")
-        return True
-
+        payload = {
+            "personalizations": [{"to": [{"email": ALERT_EMAIL_TO}]}],
+            "from":    {"email": ALERT_EMAIL_FROM},
+            "subject": subject,
+            "content": [{"type": "text/plain", "value": body}],
+        }
+        response = requests.post(
+            SENDGRID_API_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type":  "application/json",
+            },
+            json=payload,
+            timeout=10,
+        )
+        if response.status_code in (200, 202):
+            logger.info(f"✅ Alert sent: {subject}")
+            return True
+        else:
+            logger.error(f"❌ SendGrid error {response.status_code}: {response.text}")
+            return False
     except Exception as e:
         logger.error(f"❌ Failed to send alert: {e}")
         return False
 
 
-# ============================================================
-# SPECIFIC ALERT TYPES
-# ============================================================
-
 def alert_bot_started(strategy_name: str, starting_value: float):
-    """Sent when bot starts — confirms it's live and running."""
     now = datetime.now(ET).strftime("%Y-%m-%d %H:%M ET")
     subject = f"🟢 [{strategy_name}] Trading Bot Started"
     body = f"""
@@ -79,19 +67,14 @@ Mode:            Paper Trading (no real money)
 You will receive alerts if:
   - Portfolio drops below the kill switch floor
   - Daily losses exceed the stop threshold
+  - Daily review completes with adjustments
 
-To stop the bot, shut down your Render service.
+To stop the bot, suspend the service on Render.
     """.strip()
     send_email(subject, body)
 
 
-def alert_daily_stop(
-    strategy_name: str,
-    portfolio_value: float,
-    daily_loss_pct: float,
-    threshold_pct: float,
-):
-    """Sent when daily loss limit is hit — bot stops for the day."""
+def alert_daily_stop(strategy_name, portfolio_value, daily_loss_pct, threshold_pct):
     now = datetime.now(ET).strftime("%Y-%m-%d %H:%M ET")
     subject = f"🟡 [{strategy_name}] Daily Stop Triggered"
     body = f"""
@@ -104,20 +87,11 @@ Daily loss:      {daily_loss_pct:.1f}%
 Threshold:       {threshold_pct:.0f}%
 
 The bot will resume trading tomorrow at market open.
-No positions have been closed — existing stop-losses remain active.
     """.strip()
     send_email(subject, body)
 
 
-def alert_kill_switch(
-    strategy_name: str,
-    portfolio_value: float,
-    floor_value: float,
-):
-    """
-    Sent when portfolio drops below the floor.
-    This is permanent — bot will NOT restart.
-    """
+def alert_kill_switch(strategy_name, portfolio_value, floor_value):
     now = datetime.now(ET).strftime("%Y-%m-%d %H:%M ET")
     subject = f"🔴 [{strategy_name}] KILL SWITCH — Trading Halted Permanently"
     body = f"""
@@ -128,30 +102,13 @@ Time:            {now}
 Portfolio value: ${portfolio_value:,.2f}
 Floor threshold: ${floor_value:,.2f}
 
-The bot has:
-  ✓ Cancelled all open orders
-  ✓ Closed all open positions
-  ✓ Stopped permanently (will not restart)
-
-To restart, you must manually redeploy on Render
-and reset the paper trading account on Alpaca.
-
-Review logs to understand what happened before restarting.
+The bot has cancelled all orders and closed all positions.
+To restart, redeploy on Render and reset your Alpaca paper account.
     """.strip()
     send_email(subject, body)
 
 
-def alert_trade_executed(
-    strategy_name: str,
-    action: str,
-    symbol: str,
-    qty: float,
-    price: float,
-    stop_loss: float,
-    take_profit: float,
-    reason: str,
-):
-    """Optional — sent when a trade is placed. Useful for monitoring."""
+def alert_trade_executed(strategy_name, action, symbol, qty, price, stop_loss, take_profit, reason):
     now = datetime.now(ET).strftime("%Y-%m-%d %H:%M ET")
     subject = f"📊 [{strategy_name}] Trade: {action} {symbol}"
     body = f"""
@@ -170,8 +127,7 @@ Reason: {reason}
     send_email(subject, body)
 
 
-def alert_error(strategy_name: str, error_msg: str):
-    """Sent when an unexpected error occurs that needs attention."""
+def alert_error(strategy_name, error_msg):
     now = datetime.now(ET).strftime("%Y-%m-%d %H:%M ET")
     subject = f"⚠️  [{strategy_name}] Bot Error"
     body = f"""

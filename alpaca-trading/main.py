@@ -2,35 +2,36 @@
 main.py
 =======
 Runs both strategies every hour in parallel.
-This is the entry point — run this file to start the bot.
+Includes a health check endpoint so Render Web Service
+doesn't spin down — same pattern as USPS chatbot.
 
 Usage:
-    python main.py
+    python3 main.py
 
 Deployment:
-    On Render, set the start command to: python main.py
+    Render Web Service — start command: python3 main.py
+    Keep alive: cron-job.org pinging /health every 10 minutes
 """
 
 import logging
+import os
 import threading
 import time
 import json
 from datetime import datetime
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from zoneinfo import ZoneInfo
 
 from shared.config import validate_config, CONSERVATIVE, AGGRESSIVE, ALPACA_API_KEY_CONSERVATIVE, ALPACA_SECRET_KEY_CONSERVATIVE, ALPACA_API_KEY_AGGRESSIVE, ALPACA_SECRET_KEY_AGGRESSIVE
 from shared.alpaca_client import AlpacaClient
 from shared.risk_guardian import run_risk_checks
 from shared.alerts import alert_bot_started, alert_error
+from shared.review import run_daily_review
 from conservative.strategy import ConservativeStrategy
 from aggressive.strategy import AggressiveStrategy
 
-from shared.review import run_daily_review
-from shared.state import get_settings
-
 # ============================================================
 # LOGGING SETUP
-# Logs to both console and individual strategy log files
 # ============================================================
 
 logging.basicConfig(
@@ -38,8 +39,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
-        logging.StreamHandler(),                         # Console (visible on Render)
-        logging.FileHandler("logs/bot.log"),             # Master log
+        logging.StreamHandler(),
+        logging.FileHandler("logs/bot.log"),
     ]
 )
 logger = logging.getLogger(__name__)
@@ -47,12 +48,33 @@ ET = ZoneInfo("America/New_York")
 
 
 # ============================================================
-# STRATEGY LOG FILES
-# Each strategy writes its own decision log as JSON lines
-# Easy to parse for the dashboard
+# HEALTH CHECK SERVER
+# Keeps Render Web Service alive — responds to pings on /health
 # ============================================================
 
-def log_decisions(strategy_name: str, decisions: list[dict]):
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        pass  # Suppress HTTP access logs — keep bot logs clean
+
+
+def run_health_server():
+    """Runs a tiny HTTP server in a background thread."""
+    port = int(os.getenv("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    logger.info(f"✅ Health server started on port {port}")
+    server.serve_forever()
+
+
+# ============================================================
+# DECISION LOGGER
+# ============================================================
+
+def log_decisions(strategy_name: str, decisions: list):
     """Appends decisions to the strategy's JSON log file."""
     log_file = (
         "logs/conservative.log" if strategy_name == "Conservative"
@@ -70,24 +92,14 @@ def log_decisions(strategy_name: str, decisions: list[dict]):
 
 
 # ============================================================
-# SINGLE STRATEGY RUNNER
-# Runs in its own thread so both strategies run in parallel
+# STRATEGY RUNNER
 # ============================================================
 
-def run_strategy(
-    strategy,
-    strategy_name: str,
-    alpaca: AlpacaClient,
-    today_open_value: float,
-):
-    """
-    Executes one cycle of a strategy with full risk checks.
-    Designed to run in a thread.
-    """
+def run_strategy(strategy, strategy_name, alpaca, today_open_value):
+    """Executes one cycle of a strategy with full risk checks."""
     try:
         portfolio_value = alpaca.get_portfolio_value()
 
-        # Run risk checks before anything else
         config = CONSERVATIVE if strategy_name == "Conservative" else AGGRESSIVE
         risk = run_risk_checks(
             strategy_name=strategy_name,
@@ -98,7 +110,6 @@ def run_strategy(
             is_stopped_today=strategy.stopped_today,
         )
 
-        # Update strategy flags from risk check results
         if risk["kill_switch"]:
             strategy.killed = True
             alpaca.cancel_all_orders()
@@ -115,11 +126,9 @@ def run_strategy(
             logger.info(f"[{strategy_name}] ⏸  Skipping cycle. Reason: {risk['reason']}")
             return
 
-        # Run strategy cycle
         logger.info(f"[{strategy_name}] 🔄 Running cycle — Portfolio: ${portfolio_value:,.2f}")
         decisions = strategy.run_cycle()
 
-        # Log decisions
         if decisions:
             log_decisions(strategy_name, decisions)
             for d in decisions:
@@ -136,68 +145,20 @@ def run_strategy(
 
 
 # ============================================================
-# HOURLY SCHEDULER
-# Runs both strategies at the top of every hour
-# ============================================================
-
-def run_hourly_cycle(
-    conservative: ConservativeStrategy,
-    aggressive: AggressiveStrategy,
-    alpaca: AlpacaClient,
-    today_open_values: dict,
-):
-    """Runs both strategies in parallel threads."""
-    logger.info("=" * 60)
-    logger.info(f"⏰  Hourly cycle starting — {datetime.now(ET).strftime('%Y-%m-%d %H:%M ET')}")
-    logger.info("=" * 60)
-
-    # Run both strategies simultaneously in separate threads
-    con_thread = threading.Thread(
-        target=run_strategy,
-        args=(conservative, "Conservative", alpaca, today_open_values["conservative"]),
-        daemon=True,
-    )
-    agg_thread = threading.Thread(
-        target=run_strategy,
-        args=(aggressive, "Aggressive", alpaca, today_open_values["aggressive"]),
-        daemon=True,
-    )
-
-    con_thread.start()
-    agg_thread.start()
-
-    # Wait for both to finish before next cycle
-    con_thread.join(timeout=300)  # 5 min timeout per cycle
-    agg_thread.join(timeout=300)
-
-    logger.info("✅ Hourly cycle complete.")
-
-
-# ============================================================
-# DAILY OPEN VALUE TRACKER
-# Resets at midnight ET each day
-# ============================================================
-
-def get_today_open_values(alpaca: AlpacaClient) -> dict:
-    """Fetches current portfolio value to use as today's open."""
-    value = alpaca.get_portfolio_value()
-    return {
-        "conservative": value,
-        "aggressive":   value,
-    }
-
-
-# ============================================================
 # MAIN ENTRY POINT
 # ============================================================
 
 def main():
     logger.info("🚀 Trading bot starting up...")
 
-    # Validate all API keys are present
+    # Validate all API keys
     validate_config()
 
-    # Initialize separate Alpaca clients — one per strategy, one per account
+    # Start health server in background thread (keeps Render alive)
+    health_thread = threading.Thread(target=run_health_server, daemon=True)
+    health_thread.start()
+
+    # Initialize Alpaca clients — one per strategy
     alpaca_conservative = AlpacaClient(
         api_key=ALPACA_API_KEY_CONSERVATIVE,
         secret_key=ALPACA_SECRET_KEY_CONSERVATIVE,
@@ -207,14 +168,14 @@ def main():
         secret_key=ALPACA_SECRET_KEY_AGGRESSIVE,
     )
 
-    # Initialize both strategies with their own Alpaca client
+    # Initialize strategies
     conservative = ConservativeStrategy(alpaca_conservative)
     aggressive   = AggressiveStrategy(alpaca_aggressive)
 
-    # Get starting portfolio values per account
-    con_value           = alpaca_conservative.get_portfolio_value()
-    agg_value           = alpaca_aggressive.get_portfolio_value()
-    today_open_values   = {
+    # Get starting values
+    con_value = alpaca_conservative.get_portfolio_value()
+    agg_value = alpaca_aggressive.get_portfolio_value()
+    today_open_values = {
         "conservative": con_value,
         "aggressive":   agg_value,
     }
@@ -225,17 +186,17 @@ def main():
     logger.info(f"📊 Conservative kill switch:    ${CONSERVATIVE['portfolio_floor']:,.2f}")
     logger.info(f"📊 Aggressive kill switch:      ${AGGRESSIVE['portfolio_floor']:,.2f}")
 
-    # Send startup confirmation emails
+    # Startup email confirmations
     alert_bot_started("Conservative", con_value)
     alert_bot_started("Aggressive",   agg_value)
 
     # ============================================================
-    # MAIN LOOP — runs forever until killed
+    # MAIN LOOP
     # ============================================================
     while True:
         now = datetime.now(ET)
 
-        # Reset daily open values at midnight
+        # Reset daily values at midnight
         if now.date() != last_reset_date:
             today_open_values = {
                 "conservative": alpaca_conservative.get_portfolio_value(),
@@ -243,20 +204,24 @@ def main():
             }
             last_reset_date = now.date()
             logger.info(
-                f"📅 New day — Conservative: ${today_open_values['conservative']:,.2f} | "
+                f"📅 New day — "
+                f"Conservative: ${today_open_values['conservative']:,.2f} | "
                 f"Aggressive: ${today_open_values['aggressive']:,.2f}"
             )
 
-        # Run daily review at 4:05pm ET (after market close)
+        # Daily review at 4:05pm ET (after market close)
         if now.hour == 16 and now.minute == 5 and now.second < 60:
             logger.info("📊 Triggering end-of-day review...")
             run_daily_review(alpaca_conservative, alpaca_aggressive)
-            time.sleep(61)  # Prevent double-firing
-        
-        # Run hourly cycle at the top of each hour (:00)
-        # Check every 60 seconds to avoid drift
-        if now.minute == 0 and now.second < 60:
-            # Run both strategies with their own Alpaca clients
+            # Sleep 61 seconds so this only fires once
+            time.sleep(61)
+
+        # Hourly trading cycle at :00
+        elif now.minute == 0 and now.second < 60:
+            logger.info("=" * 60)
+            logger.info(f"⏰ Hourly cycle — {now.strftime('%Y-%m-%d %H:%M ET')}")
+            logger.info("=" * 60)
+
             con_thread = threading.Thread(
                 target=run_strategy,
                 args=(conservative, "Conservative", alpaca_conservative, today_open_values["conservative"]),
@@ -273,15 +238,15 @@ def main():
             agg_thread.join(timeout=300)
             logger.info("✅ Hourly cycle complete.")
 
-            # Stop if both strategies are killed
             if conservative.killed and aggressive.killed:
                 logger.critical("🔴 Both strategies killed. Bot shutting down.")
                 break
 
-            # Wait 61 seconds to avoid double-firing at :00
+            # Sleep 61 seconds to avoid double-firing
             time.sleep(61)
+
         else:
-            # Sleep 30 seconds between checks
+            # Check every 30 seconds
             time.sleep(30)
 
 

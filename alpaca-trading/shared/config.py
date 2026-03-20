@@ -22,7 +22,6 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 # Email alerts
 ALERT_EMAIL_FROM     = os.getenv("ALERT_EMAIL_FROM")
-ALERT_EMAIL_PASSWORD = os.getenv("ALERT_EMAIL_PASSWORD")
 ALERT_EMAIL_TO       = os.getenv("ALERT_EMAIL_TO")
 
 # ============================================================
@@ -133,7 +132,6 @@ def validate_config():
         "ALPACA_SECRET_KEY_AGGRESSIVE": ALPACA_SECRET_KEY_AGGRESSIVE,
         "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY,
         "ALERT_EMAIL_FROM": ALERT_EMAIL_FROM,
-        "ALERT_EMAIL_PASSWORD": ALERT_EMAIL_PASSWORD,
         "ALERT_EMAIL_TO": ALERT_EMAIL_TO,
     }
     missing = [k for k, v in required.items() if not v or "your_" in str(v)]
