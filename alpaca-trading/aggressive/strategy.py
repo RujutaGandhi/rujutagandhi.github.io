@@ -33,6 +33,8 @@ from shared.fear_greed import get_fear_greed
 from shared.congressional import get_congressional_signal
 from shared.scoring import calculate_score, is_trade_eligible, score_summary
 
+from shared.state import save_crypto_position, remove_crypto_position, get_crypto_positions
+
 logger = logging.getLogger(__name__)
 ET = ZoneInfo("America/New_York")
 
@@ -231,6 +233,34 @@ class AggressiveStrategy:
                 f"[Aggressive] New day — open value: ${self.today_open_value:,.2f}"
             )
 
+    def _check_crypto_stops(self):
+    """
+    Checks all open crypto positions against their stop prices.
+    Sells any position that has breached its stop.
+    """
+    positions = get_crypto_positions()
+    if not positions:
+        return
+
+    for symbol, pos in list(positions.items()):
+        if pos.get("strategy") != "Aggressive":
+            continue
+        try:
+            current_price = self.alpaca.get_crypto_price(symbol)
+            if not current_price:
+                continue
+
+            if current_price <= pos["stop_price"]:
+                logger.warning(
+                    f"[Aggressive] 🛑 Crypto stop hit: {symbol} "
+                    f"current ${current_price:,.2f} <= stop ${pos['stop_price']:,.2f}"
+                )
+                self.alpaca.place_crypto_stop_sell(symbol, pos["qty"])
+                remove_crypto_position(symbol)
+
+        except Exception as e:
+            logger.error(f"[Aggressive] Error checking stop for {symbol}: {e}")
+
     def run_cycle(self) -> List[dict]:
         """
         Runs one full hourly cycle across all symbols.
@@ -245,6 +275,9 @@ class AggressiveStrategy:
         if self.stopped_today:
             logger.info("[Aggressive] Daily stop active — skipping cycle.")
             return []
+        
+        # Check crypto stop-losses first
+        self._check_crypto_stops()
 
         portfolio_value = self.alpaca.get_portfolio_value()
         cash            = self.alpaca.get_cash()
@@ -386,6 +419,15 @@ class AggressiveStrategy:
                             stop_loss=stop_loss,
                         )
                         if order:
+                            # Save crypto position for manual stop-loss tracking
+                            if self.alpaca.is_crypto(symbol):
+                                save_crypto_position(
+                                    symbol=symbol,
+                                    entry_price=price,
+                                    stop_price=price - (self.config["atr_stop_multiplier"] * signals["atr"]),
+                                    qty=qty,
+                                    strategy="Aggressive",
+                                )
                             alert_trade_executed(
                                 strategy_name="Aggressive",
                                 action="BUY",

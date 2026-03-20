@@ -184,50 +184,82 @@ class AlpacaClient:
     # ============================================================
 
     def place_limit_order(
-        self,
-        symbol: str,
-        side: str,           # "buy" or "sell"
-        qty: float,
-        limit_price: float,
-        take_profit: float,
-        stop_loss: float,
-    ) -> Optional[dict]:
-        """
-        Places a limit order with take-profit and stop-loss.
-        Uses bracket order so both exits are set automatically.
+    self,
+    symbol: str,
+    side: str,
+    qty: float,
+    limit_price: float,
+    take_profit: float,
+    stop_loss: float,
+) -> Optional[dict]:
+    try:
+        order_side = OrderSide.BUY if side == "buy" else OrderSide.SELL
 
-        Args:
-            symbol:      e.g. "AAPL" or "BTC/USD"
-            side:        "buy" or "sell"
-            qty:         number of shares/coins
-            limit_price: max price willing to pay (buy) or min to accept (sell)
-            take_profit: price to automatically take profit
-            stop_loss:   price to automatically cut loss
-        """
-        try:
-            order_side = OrderSide.BUY if side == "buy" else OrderSide.SELL
-
-            order_data = LimitOrderRequest(
+        # Crypto — simple market order (Alpaca doesn't support
+        # bracket orders for crypto)
+        if self.is_crypto(symbol):
+            order_data = MarketOrderRequest(
                 symbol=symbol,
                 qty=qty,
                 side=order_side,
-                time_in_force=TimeInForce.DAY,
-                limit_price=round(limit_price, 2),
-                order_class="bracket",
-                take_profit={"limit_price": round(take_profit, 2)},
-                stop_loss={"stop_price": round(stop_loss, 2)},
+                time_in_force=TimeInForce.GTC,
             )
-
             order = self.trading.submit_order(order_data)
             logger.info(
-                f"✅ Order placed: {side.upper()} {qty} {symbol} "
-                f"@ ${limit_price:.2f} | TP: ${take_profit:.2f} | SL: ${stop_loss:.2f}"
+                f"✅ Crypto order placed: {side.upper()} {qty} {symbol} @ market"
             )
             return order
 
-        except Exception as e:
-            logger.error(f"❌ Failed to place order for {symbol}: {e}")
+        # Stocks — whole shares only, bracket order with
+        # stop-loss and take-profit
+        whole_qty = int(qty)
+        if whole_qty == 0:
+            logger.warning(f"⚠️  {symbol} qty rounded to 0 — skipping order")
             return None
+
+        order_data = LimitOrderRequest(
+            symbol=symbol,
+            qty=whole_qty,
+            side=order_side,
+            time_in_force=TimeInForce.DAY,
+            limit_price=round(limit_price, 2),
+            order_class="bracket",
+            take_profit={"limit_price": round(take_profit, 2)},
+            stop_loss={"stop_price": round(stop_loss, 2)},
+        )
+        order = self.trading.submit_order(order_data)
+        logger.info(
+            f"✅ Stock order placed: {side.upper()} {whole_qty} {symbol} "
+            f"@ ${limit_price:.2f} | TP: ${take_profit:.2f} | SL: ${stop_loss:.2f}"
+        )
+        return order
+
+    except Exception as e:
+        logger.error(f"❌ Failed to place order for {symbol}: {e}")
+        return None
+    
+    def place_crypto_stop_sell(
+    self,
+    symbol: str,
+    qty: float,
+) -> Optional[dict]:
+    """
+    Places a market sell order for crypto.
+    Used by manual stop-loss logic in strategy.
+    """
+    try:
+        order_data = MarketOrderRequest(
+            symbol=symbol,
+            qty=qty,
+            side=OrderSide.SELL,
+            time_in_force=TimeInForce.GTC,
+        )
+        order = self.trading.submit_order(order_data)
+        logger.info(f"✅ Crypto stop-sell placed: {qty} {symbol}")
+        return order
+    except Exception as e:
+        logger.error(f"❌ Failed to place crypto stop-sell for {symbol}: {e}")
+        return None
 
     def cancel_all_orders(self):
         """Cancels all open orders. Used by kill switch."""

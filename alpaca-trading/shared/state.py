@@ -52,6 +52,7 @@ DEFAULT_STATE = {
         "last_updated":         None,
     },
     "history": [],   # Last 14 days of adjustments
+    "crypto_positions": {},
     "created_at": datetime.now(ET).isoformat(),
 }
 
@@ -213,3 +214,31 @@ def get_settings(strategy_name: str) -> dict:
     """
     state = load_state()
     return state.get(strategy_name.lower(), DEFAULT_STATE[strategy_name.lower()])
+
+
+def save_crypto_position(symbol: str, entry_price: float, stop_price: float, qty: float, strategy: str):
+    """Saves a crypto position entry for stop-loss tracking."""
+    state = load_state()
+    state.setdefault("crypto_positions", {})[symbol] = {
+        "entry_price": entry_price,
+        "stop_price":  stop_price,
+        "qty":         qty,
+        "strategy":    strategy,
+        "opened_at":   datetime.now(ET).isoformat(),
+    }
+    save_state(state)
+    logger.info(f"💾 Crypto position saved: {symbol} @ ${entry_price} stop @ ${stop_price}")
+
+
+def remove_crypto_position(symbol: str):
+    """Removes a crypto position after it's been closed."""
+    state = load_state()
+    state.setdefault("crypto_positions", {}).pop(symbol, None)
+    save_state(state)
+    logger.info(f"💾 Crypto position removed: {symbol}")
+
+
+def get_crypto_positions() -> dict:
+    """Returns all tracked crypto positions."""
+    state = load_state()
+    return state.get("crypto_positions", {})
