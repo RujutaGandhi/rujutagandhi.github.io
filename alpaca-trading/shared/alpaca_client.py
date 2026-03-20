@@ -239,14 +239,11 @@ class AlpacaClient:
         return None
     
     def place_crypto_stop_sell(
-    self,
-    symbol: str,
-    qty: float,
-) -> Optional[dict]:
-    """
-    Places a market sell order for crypto.
-    Used by manual stop-loss logic in strategy.
-    """
+        self,
+        symbol: str,
+        qty: float,
+    ) -> Optional[dict]:
+        # nothing here or bad indentation
     try:
         order_data = MarketOrderRequest(
             symbol=symbol,
@@ -260,7 +257,7 @@ class AlpacaClient:
     except Exception as e:
         logger.error(f"❌ Failed to place crypto stop-sell for {symbol}: {e}")
         return None
-
+    
     def cancel_all_orders(self):
         """Cancels all open orders. Used by kill switch."""
         try:
