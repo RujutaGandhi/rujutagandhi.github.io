@@ -110,22 +110,28 @@ if alpaca_con and alpaca_agg:
         agg_start     = AGGRESSIVE["starting_capital"]
 
         with col1:
+            con_delta = con_value - con_start
             st.metric(
                 label="🛡️ Conservative",
                 value=f"${con_value:,.2f}",
-                delta=f"${con_value - con_start:,.2f} vs start",
+                delta=f"${con_delta:,.2f} vs start",
+                delta_color="normal" if con_delta >= 0 else "inverse",
             )
         with col2:
+            agg_delta = agg_value - agg_start
             st.metric(
                 label="⚡ Aggressive",
                 value=f"${agg_value:,.2f}",
-                delta=f"${agg_value - agg_start:,.2f} vs start",
+                delta=f"${agg_delta:,.2f} vs start",
+                delta_color="normal" if agg_delta >= 0 else "inverse",
             )
         with col3:
+            combined_delta = (con_value + agg_value) - (con_start + agg_start)
             st.metric(
                 label="Combined Total",
                 value=f"${con_value + agg_value:,.2f}",
-                delta=f"${(con_value + agg_value) - (con_start + agg_start):,.2f} vs start",
+                delta=f"${combined_delta:,.2f} vs start",
+                delta_color="normal" if combined_delta >= 0 else "inverse",
             )
 
         # Open positions — side by side
@@ -146,7 +152,7 @@ if alpaca_con and alpaca_agg:
                         "Current": f"${float(p.current_price):,.4f}",
                         "P&L":     f"${float(p.unrealized_pl):,.2f}",
                         "P&L %":   f"{float(p.unrealized_plpc)*100:.2f}%",
-                    }]
+                    } for p in positions]
                     st.dataframe(pd.DataFrame(pos_data), use_container_width=True, hide_index=True)
 
             render_positions(con_positions, "🛡️ Conservative", pcol1)
