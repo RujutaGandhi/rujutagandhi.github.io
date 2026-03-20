@@ -191,7 +191,7 @@ class AlpacaClient:
     limit_price: float,
     take_profit: float,
     stop_loss: float,
-) -> Optional[dict]:
+    ) -> Optional[dict]:
     try:
         order_side = OrderSide.BUY if side == "buy" else OrderSide.SELL
 
