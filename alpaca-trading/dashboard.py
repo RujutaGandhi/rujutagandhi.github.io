@@ -204,8 +204,11 @@ def render_strategy_stats(df: pd.DataFrame, name: str, config: dict, col):
 
         # Recent decisions
         st.markdown("**Recent Decisions:**")
-        recent = df.tail(10)[["timestamp", "action", "symbol", "reason", "regime", "confidence"]].copy()
+        display_cols = [c for c in ["timestamp", "action", "symbol", "reason", "regime", "confidence"] if c in df.columns]
+        recent = df.tail(10)[display_cols].copy()
         recent["timestamp"] = recent["timestamp"].dt.strftime("%m/%d %H:%M")
+        # Show meaningful rows — filter out bare heartbeat HOLDs with no symbol
+        recent = recent[recent["action"] != "HOLD"].tail(10) if len(recent[recent["action"] != "HOLD"]) > 0 else recent.tail(5)
         st.dataframe(recent, use_container_width=True, hide_index=True)
 
 render_strategy_stats(con_log, "Conservative", CONSERVATIVE, col_con)
@@ -290,7 +293,13 @@ def render_regime_breakdown(df: pd.DataFrame, name: str, col):
             st.info("No data yet.")
             return
 
-        regime_counts = df["regime"].value_counts()
+        # Filter out N/A and None regimes (cycle heartbeats)
+        regime_df = df[df["regime"].isin(["TREND", "RANGE", "UNCLEAR"])]
+        if regime_df.empty:
+            st.info("No regime data yet — bot is running but all cycles returned HOLD.")
+            return
+
+        regime_counts = regime_df["regime"].value_counts()
         fig = go.Figure(go.Pie(
             labels=regime_counts.index,
             values=regime_counts.values,

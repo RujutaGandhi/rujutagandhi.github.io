@@ -137,6 +137,14 @@ def run_strategy(strategy, strategy_name, alpaca, today_open_value):
                     f"— {d.get('reason', '')}"
                 )
         else:
+            # Log a cycle heartbeat so the dashboard has data to show
+            log_decisions(strategy_name, [{
+                "action":     "HOLD",
+                "symbol":     None,
+                "reason":     "No eligible setups this cycle",
+                "regime":     "N/A",
+                "confidence": "N/A",
+            }])
             logger.info(f"[{strategy_name}] No trades this cycle.")
 
     except Exception as e:
