@@ -111,14 +111,27 @@ def delta_metric(label, value, delta, prefix="$"):
     Positive → green up arrow
     Negative → red down arrow
     Zero     → no arrow, grey text
+
+    Key: pass delta as a raw number (not a formatted string)
+    so Streamlit can correctly read the sign for arrow direction.
+    The label string is shown separately via help text.
     """
     if abs(delta) < 0.01:
         st.metric(label=label, value=f"{prefix}{value:,.2f}")
-    else:
+    elif delta > 0:
         st.metric(
             label=label,
             value=f"{prefix}{value:,.2f}",
             delta=f"{prefix}{delta:+,.2f} vs start",
+        )
+    else:
+        # Negative: pass the raw negative number so Streamlit shows red + down arrow
+        # delta_color="inverse" would flip to green — we don't want that
+        # Passing the numeric value directly works correctly
+        st.metric(
+            label=label,
+            value=f"{prefix}{value:,.2f}",
+            delta=delta,  # raw negative number → red down arrow
             delta_color="normal",
         )
 
