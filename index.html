@@ -699,7 +699,7 @@
           <li><strong>Whole shares for stocks</strong> — Alpaca doesn't support bracket orders on fractional shares. Rounded position sizes to whole shares to enable automatic stop-loss and take-profit on all stock trades.</li>
           <li><strong>Self-tuning daily review loop</strong> — Static bots don't learn. Claude reviews its own trade log at 4:05pm ET, identifies what worked and what didn't, and outputs JSON parameter adjustments with safety bounds checking to prevent runaway values.</li>
           <li><strong>SendGrid over Gmail SMTP</strong> — Render's free tier blocks outbound SMTP. Switched to SendGrid HTTP API (Mail Send only, restricted key) which works on all Render tiers and is more secure by design.</li>
-          <li><strong>Phase-based build with eval gates</strong> — Built in 5 phases, each with its own test file before proceeding. 22 checks in test_dry_run.py, 35 in test_signals.py, 25 in test_phase5.py — all passing before deployment.</li>
+          <li><strong>Phase-based build with eval gates</strong> — Built in 5 phases, each with its own test file before proceeding. 22 checks in test_dry_run.py, 35 in test_signals.py, 25 in test_phase5.py, 22 checks in test_phase6.py — all passing before deployment.</li>
           <li><strong>Dynamic screener over fixed stock list</strong> — Instead of always scanning the same 10 stocks, the screener fetches the most active and highest-momentum US stocks from Alpaca each cycle. UBER is permanently included. AMZN is permanently excluded due to trading restrictions — enforced at the config level and tested in the Phase 6 test suite.</li>
 <li><strong>Reddit + StockTwits social sentiment</strong> — Retail momentum often appears on social media before price moves. Both APIs are free with no authentication required. Claude scores the combined signal (+2 bullish / -2 bearish) as the 9th weighted signal in the scoring engine.</li>
         </ul>
@@ -708,16 +708,16 @@
       <div class="modal-section">
         <div class="modal-section-label">Signal Architecture</div>
         <div class="modal-tech">
-          <span>News Sentiment — Claude (+3)</span>
-          <span>Congressional Trades (+2)</span>
+          <span>News Sentiment — Claude (+3 / -3)</span>
+          <span>Social Sentiment — Reddit + StockTwits (+2 / -2)</span>
+          <span>Congressional Trades (+2 / -1)</span>
           <span>Market Regime / ADX (+2)</span>
-          <span>Fear & Greed Index (+2)</span>
-          <span>RSI (+1)</span>
-          <span>MACD (+1)</span>
-          <span>EMA Crossover (+1)</span>
+          <span>Fear & Greed Index (+2 / -1)</span>
+          <span>RSI (+1 / -1)</span>
+          <span>MACD (+1 / -1)</span>
+          <span>EMA Crossover (+1 / -1)</span>
           <span>Volume Ratio (+1)</span>
           <span>Earnings Veto (hard block)</span>
-          <span>Reddit API / StockTwits API (social sentiment) (+2)</span>
         </div>
       </div>
  
@@ -748,7 +748,7 @@
       <div class="modal-section">
         <div class="modal-section-label">What's Next</div>
         <ul>
-          <li><strong>Dashboard V2:</strong> Signal scorecard per trade, Conservative vs Aggressive vs S&P500 P&L chart, news headlines panel showing what Claude read for each decision</li>
+          <li><strong>Dashboard V3:</strong> Signal scorecard per trade and news headlines panel — requires adding Supabase decision logging so data persists across services.</li>
           <li><strong>Options layer:</strong> Aggressive strategy V2 — use Alpaca Options API to buy calls/puts on high-conviction signals for leveraged upside with capped downside</li>
           <li><strong>Real money deployment:</strong> After 2 weeks of paper trading validation with documented Sharpe ratio and win rate</li>
         </ul>
