@@ -1,34 +1,42 @@
 """
 dashboard.py
 ============
-Side-by-side performance dashboard for both strategies.
+Live performance dashboard for both trading strategies.
 Built with Streamlit — runs in browser.
 
-Usage:
-    streamlit run dashboard.py
+Data sources:
+- Live portfolio values:   Alpaca account API
+- Trade history:           Alpaca closed orders API
+- Equity curve:            Alpaca portfolio history API
+- S&P500 comparison:       Alpaca stock bars (SPY)
+- Market regime:           Computed live from price data
+- Sharpe ratio:            Computed from daily portfolio history
 
-Shows:
-- Live portfolio values for both strategies
-- P&L over time (chart)
-- Trade history with decisions and reasons
-- Win/loss stats
-- Kill switch status
+No log files required — all data comes from Alpaca directly,
+so this works even on a separate Render service from the bot.
 """
 
-import json
 import logging
-from datetime import datetime
-from pathlib import Path
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 from shared.alpaca_client import AlpacaClient
-from shared.config import CONSERVATIVE, AGGRESSIVE, validate_config, ALPACA_API_KEY_CONSERVATIVE, ALPACA_SECRET_KEY_CONSERVATIVE, ALPACA_API_KEY_AGGRESSIVE, ALPACA_SECRET_KEY_AGGRESSIVE
+from shared.config import (
+    CONSERVATIVE, AGGRESSIVE,
+    ALPACA_API_KEY_CONSERVATIVE, ALPACA_SECRET_KEY_CONSERVATIVE,
+    ALPACA_API_KEY_AGGRESSIVE,   ALPACA_SECRET_KEY_AGGRESSIVE,
+    PERMANENT_SYMBOLS, EXCLUDED_SYMBOLS,
+    validate_config,
+)
+from shared.indicators import compute_all, get_latest_signals
+from shared.regime_filter import regime_summary
 
-ET = ZoneInfo("America/New_York")
+ET     = ZoneInfo("America/New_York")
 logger = logging.getLogger(__name__)
 
 # ============================================================
@@ -43,35 +51,7 @@ st.set_page_config(
 )
 
 st.title("🤖 AI Trading Bot — Live Dashboard")
-st.caption(f"Paper Trading | Updated: {datetime.now(ET).strftime('%Y-%m-%d %H:%M ET')}")
-
-# ============================================================
-# LOAD LOG FILES
-# ============================================================
-
-def load_log(log_file: str) -> pd.DataFrame:
-    """Loads a JSON-lines log file into a DataFrame."""
-    path = Path(log_file)
-    if not path.exists() or path.stat().st_size == 0:
-        return pd.DataFrame()
-
-    records = []
-    with open(path) as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                try:
-                    records.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
-
-    if not records:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(records)
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    return df.sort_values("timestamp")
-
+st.caption(f"Paper Trading · Updated: {datetime.now(ET).strftime('%Y-%m-%d %H:%M ET')}")
 
 # ============================================================
 # CONNECT TO ALPACA
@@ -90,268 +70,371 @@ def get_alpaca_clients():
 
 alpaca_con, alpaca_agg = get_alpaca_clients()
 
+if not alpaca_con or not alpaca_agg:
+    st.stop()
+
 # ============================================================
-# LIVE PORTFOLIO VALUES
+# FETCH ALL DATA
+# ============================================================
+
+@st.cache_data(ttl=300)
+def fetch_dashboard_data():
+    data = {}
+    data["con_value"]     = alpaca_con.get_portfolio_value()
+    data["agg_value"]     = alpaca_agg.get_portfolio_value()
+    data["con_cash"]      = alpaca_con.get_cash()
+    data["agg_cash"]      = alpaca_agg.get_cash()
+    data["con_positions"] = alpaca_con.get_positions()
+    data["agg_positions"] = alpaca_agg.get_positions()
+    data["con_orders"]    = alpaca_con.get_closed_orders(days_back=30)
+    data["agg_orders"]    = alpaca_agg.get_closed_orders(days_back=30)
+    data["con_history"]   = alpaca_con.get_portfolio_history(days_back=30)
+    data["agg_history"]   = alpaca_agg.get_portfolio_history(days_back=30)
+    return data
+
+try:
+    d = fetch_dashboard_data()
+except Exception as e:
+    st.error(f"❌ Failed to fetch data: {e}")
+    st.stop()
+
+con_start = CONSERVATIVE["starting_capital"]
+agg_start = AGGRESSIVE["starting_capital"]
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def delta_metric(label, value, delta, prefix="$"):
+    """
+    Renders st.metric with correct arrow and color.
+    Positive → green up arrow
+    Negative → red down arrow
+    Zero     → no arrow, grey text
+    """
+    if abs(delta) < 0.01:
+        st.metric(label=label, value=f"{prefix}{value:,.2f}")
+    else:
+        st.metric(
+            label=label,
+            value=f"{prefix}{value:,.2f}",
+            delta=f"{prefix}{delta:+,.2f} vs start",
+            delta_color="normal",
+        )
+
+
+def compute_sharpe(history_df, starting_capital):
+    if history_df.empty or len(history_df) < 5:
+        return "N/A"
+    try:
+        values  = history_df["value"].values
+        returns = pd.Series(values).pct_change().dropna()
+        if returns.std() == 0:
+            return "N/A"
+        sharpe = (returns.mean() / returns.std()) * np.sqrt(252)
+        return f"{sharpe:.2f}"
+    except Exception:
+        return "N/A"
+
+
+def orders_to_df(orders):
+    if not orders:
+        return pd.DataFrame()
+    rows = []
+    for o in orders:
+        try:
+            rows.append({
+                "Time":   pd.to_datetime(str(o.filled_at)).tz_convert(ET).strftime("%m/%d %H:%M"),
+                "Symbol": str(o.symbol),
+                "Side":   str(o.side).replace("OrderSide.", "").upper(),
+                "Qty":    float(o.filled_qty or 0),
+                "Price":  f"${float(o.filled_avg_price or 0):,.4f}",
+            })
+        except Exception:
+            continue
+    return pd.DataFrame(rows)
+
+
+# ============================================================
+# SECTION 1 — LIVE PORTFOLIO
 # ============================================================
 
 st.subheader("💰 Live Portfolio")
 
 col1, col2, col3 = st.columns(3)
 
-if alpaca_con and alpaca_agg:
-    try:
-        con_value     = alpaca_con.get_portfolio_value()
-        agg_value     = alpaca_agg.get_portfolio_value()
-        con_cash      = alpaca_con.get_cash()
-        agg_cash      = alpaca_agg.get_cash()
-        con_positions = alpaca_con.get_positions()
-        agg_positions = alpaca_agg.get_positions()
-        con_start     = CONSERVATIVE["starting_capital"]
-        agg_start     = AGGRESSIVE["starting_capital"]
+con_delta      = d["con_value"] - con_start
+agg_delta      = d["agg_value"] - agg_start
+combined_delta = (d["con_value"] + d["agg_value"]) - (con_start + agg_start)
 
-        with col1:
-            con_delta = con_value - con_start
-            st.metric(
-                label="🛡️ Conservative",
-                value=f"${con_value:,.2f}",
-                delta=f"${con_delta:,.2f} vs start",
-                delta_color="normal" if con_delta >= 0 else "inverse",
-            )
-        with col2:
-            agg_delta = agg_value - agg_start
-            st.metric(
-                label="⚡ Aggressive",
-                value=f"${agg_value:,.2f}",
-                delta=f"${agg_delta:,.2f} vs start",
-                delta_color="normal" if agg_delta >= 0 else "inverse",
-            )
-        with col3:
-            combined_delta = (con_value + agg_value) - (con_start + agg_start)
-            st.metric(
-                label="Combined Total",
-                value=f"${con_value + agg_value:,.2f}",
-                delta=f"${combined_delta:,.2f} vs start",
-                delta_color="normal" if combined_delta >= 0 else "inverse",
-            )
+with col1:
+    delta_metric("🛡️ Conservative", d["con_value"], con_delta)
+with col2:
+    delta_metric("⚡ Aggressive",   d["agg_value"], agg_delta)
+with col3:
+    delta_metric("Combined Total", d["con_value"] + d["agg_value"], combined_delta)
 
-        # Open positions — side by side
-        if con_positions or agg_positions:
-            st.subheader("📋 Open Positions")
-            pcol1, pcol2 = st.columns(2)
+if d["con_positions"] or d["agg_positions"]:
+    st.subheader("📋 Open Positions")
+    pcol1, pcol2 = st.columns(2)
 
-            def render_positions(positions, label, col):
-                with col:
-                    st.markdown(f"**{label}**")
-                    if not positions:
-                        st.info("No open positions.")
-                        return
-                    pos_data = [{
-                        "Symbol":  p.symbol,
-                        "Qty":     p.qty,
-                        "Entry":   f"${float(p.avg_entry_price):,.4f}",
-                        "Current": f"${float(p.current_price):,.4f}",
-                        "P&L":     f"${float(p.unrealized_pl):,.2f}",
-                        "P&L %":   f"{float(p.unrealized_plpc)*100:.2f}%",
-                    } for p in positions]
-                    st.dataframe(pd.DataFrame(pos_data), use_container_width=True, hide_index=True)
+    def render_positions(positions, label, col):
+        with col:
+            st.markdown(f"**{label}**")
+            if not positions:
+                st.info("No open positions.")
+                return
+            pos_data = [{
+                "Symbol":  p.symbol,
+                "Qty":     float(p.qty),
+                "Entry":   f"${float(p.avg_entry_price):,.4f}",
+                "Current": f"${float(p.current_price):,.4f}",
+                "P&L":     f"${float(p.unrealized_pl):,.2f}",
+                "P&L %":   f"{float(p.unrealized_plpc)*100:.2f}%",
+            } for p in positions]
+            st.dataframe(pd.DataFrame(pos_data), use_container_width=True, hide_index=True)
 
-            render_positions(con_positions, "🛡️ Conservative", pcol1)
-            render_positions(agg_positions, "⚡ Aggressive",   pcol2)
-
-    except Exception as e:
-        st.warning(f"Could not fetch live data: {e}")
+    render_positions(d["con_positions"], "🛡️ Conservative", pcol1)
+    render_positions(d["agg_positions"], "⚡ Aggressive",   pcol2)
+else:
+    st.info("No open positions in either strategy.")
 
 # ============================================================
-# STRATEGY COMPARISON
+# SECTION 2 — EQUITY CURVE vs S&P500
+# ============================================================
+
+st.divider()
+st.subheader("📈 Portfolio Performance vs S&P 500")
+st.caption(
+    "Daily portfolio value for each strategy vs SPY (S&P 500 ETF). "
+    "SPY is normalised to the same starting capital for a fair comparison. "
+    "A strategy line above SPY is outperforming the broader market."
+)
+
+@st.cache_data(ttl=3600)
+def fetch_spy():
+    try:
+        df = alpaca_con.get_stock_bars("SPY", lookback_days=30)
+        if df.empty:
+            return pd.DataFrame()
+        df = df.reset_index()
+        date_col = "timestamp" if "timestamp" in df.columns else df.index.name or "index"
+        df["date"] = pd.to_datetime(df[date_col] if date_col in df.columns else df.index)
+        return df[["date", "close"]].rename(columns={"close": "spy_close"})
+    except Exception:
+        return pd.DataFrame()
+
+spy_df = fetch_spy()
+
+fig = go.Figure()
+
+if not d["con_history"].empty:
+    fig.add_trace(go.Scatter(
+        x=d["con_history"]["date"], y=d["con_history"]["value"],
+        name="🛡️ Conservative", line=dict(color="#3b82f6", width=2),
+        hovertemplate="Conservative: $%{y:,.2f}<br>%{x}<extra></extra>",
+    ))
+
+if not d["agg_history"].empty:
+    fig.add_trace(go.Scatter(
+        x=d["agg_history"]["date"], y=d["agg_history"]["value"],
+        name="⚡ Aggressive", line=dict(color="#f59e0b", width=2),
+        hovertemplate="Aggressive: $%{y:,.2f}<br>%{x}<extra></extra>",
+    ))
+
+if not spy_df.empty:
+    spy_start      = spy_df["spy_close"].iloc[0]
+    avg_start      = (con_start + agg_start) / 2
+    spy_normalised = (spy_df["spy_close"] / spy_start) * avg_start
+    fig.add_trace(go.Scatter(
+        x=spy_df["date"], y=spy_normalised,
+        name="📊 S&P 500 (SPY)", line=dict(color="#6b7280", width=1.5, dash="dot"),
+        hovertemplate="SPY (normalised): $%{y:,.2f}<br>%{x}<extra></extra>",
+    ))
+
+fig.update_layout(
+    height=350, showlegend=True,
+    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+    yaxis=dict(title="Portfolio Value ($)", gridcolor="#e5e7eb", tickprefix="$"),
+    xaxis=dict(gridcolor="#e5e7eb"),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    margin=dict(l=0, r=0, t=40, b=0),
+    hovermode="x unified",
+)
+st.plotly_chart(fig, use_container_width=True)
+
+# ============================================================
+# SECTION 3 — STRATEGY PERFORMANCE + SHARPE
 # ============================================================
 
 st.divider()
 st.subheader("📊 Strategy Performance")
 
-con_log = load_log("logs/conservative.log")
-agg_log = load_log("logs/aggressive.log")
-
 col_con, col_agg = st.columns(2)
 
-def render_strategy_stats(df: pd.DataFrame, name: str, config: dict, col):
+def render_strategy_stats(orders, history, name, start, col):
     with col:
-        st.markdown(f"### {'🛡️' if name == 'Conservative' else '⚡'} {name}")
+        icon = "🛡️" if name == "Conservative" else "⚡"
+        st.markdown(f"### {icon} {name}")
 
-        if df.empty:
-            st.info("No trades logged yet.")
-            return
-
-        trades    = df[df["action"].isin(["BUY", "SELL"])]
-        total     = len(trades)
-        buys      = len(trades[trades["action"] == "BUY"])
-        holds     = len(df[df["action"] == "HOLD"])
-        stops     = len(df[df["action"].isin(["STOP_ALL", "STOP_TODAY"])])
-
-        # Kill switch status
-        is_killed  = not df[df["action"] == "STOP_ALL"].empty
-        is_stopped = not df[df["action"] == "STOP_TODAY"].empty
-
-        status = "🔴 KILLED" if is_killed else ("🟡 STOPPED TODAY" if is_stopped else "🟢 ACTIVE")
-        st.markdown(f"**Status:** {status}")
+        sharpe           = compute_sharpe(history, start)
+        total_return_pct = ((history["value"].iloc[-1] / start) - 1) * 100 \
+                           if not history.empty and len(history) > 1 else 0
 
         m1, m2, m3 = st.columns(3)
-        m1.metric("Total Trades", total)
-        m2.metric("Buys",         buys)
-        m3.metric("HOLDs",        holds)
+        m1.metric("Sharpe Ratio",  sharpe,
+                  help="Risk-adjusted return. Above 1.0 is good. Above 2.0 is very strong.")
+        m2.metric("Total Return",  f"{total_return_pct:+.2f}%")
+        m3.metric("Trades",        len(orders))
 
-        if stops:
-            st.warning(f"⚠️ {stops} stop event(s) triggered")
-
-        # Recent decisions
-        st.markdown("**Recent Decisions:**")
-        display_cols = [c for c in ["timestamp", "action", "symbol", "reason", "regime", "confidence"] if c in df.columns]
-        recent = df.tail(10)[display_cols].copy()
-        recent["timestamp"] = recent["timestamp"].dt.strftime("%m/%d %H:%M")
-        # Show meaningful rows — filter out bare heartbeat HOLDs with no symbol
-        recent = recent[recent["action"] != "HOLD"].tail(10) if len(recent[recent["action"] != "HOLD"]) > 0 else recent.tail(5)
-        st.dataframe(recent, use_container_width=True, hide_index=True)
-
-render_strategy_stats(con_log, "Conservative", CONSERVATIVE, col_con)
-render_strategy_stats(agg_log, "Aggressive",   AGGRESSIVE,   col_agg)
-
-# ============================================================
-# TRADE HISTORY CHART
-# ============================================================
-
-st.divider()
-st.subheader("📈 Decision Timeline")
-
-def build_timeline(df: pd.DataFrame, name: str, color: str):
-    if df.empty:
-        return None
-
-    trades = df[df["action"].isin(["BUY", "SELL"])].copy()
-    if trades.empty:
-        return None
-
-    return go.Scatter(
-        x=trades["timestamp"],
-        y=[name] * len(trades),
-        mode="markers+text",
-        marker=dict(
-            size=12,
-            color=[
-                "#22c55e" if a == "BUY" else "#ef4444"
-                for a in trades["action"]
-            ],
-            symbol=[
-                "triangle-up" if a == "BUY" else "triangle-down"
-                for a in trades["action"]
-            ],
-        ),
-        text=trades.get("symbol", ""),
-        textposition="top center",
-        name=name,
-        hovertemplate=(
-            "<b>%{text}</b><br>"
-            "%{x}<br>"
-            "<extra></extra>"
-        ),
-    )
-
-fig = go.Figure()
-con_trace = build_timeline(con_log, "Conservative", "#3b82f6")
-agg_trace = build_timeline(agg_log, "Aggressive",   "#f59e0b")
-
-if con_trace:
-    fig.add_trace(con_trace)
-if agg_trace:
-    fig.add_trace(agg_trace)
-
-if con_trace or agg_trace:
-    fig.update_layout(
-        height=250,
-        showlegend=True,
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        yaxis=dict(showgrid=False),
-        xaxis=dict(showgrid=True, gridcolor="#e5e7eb"),
-        margin=dict(l=0, r=0, t=20, b=0),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("No trades to display yet. Chart will populate as the bot makes decisions.")
-
-# ============================================================
-# REGIME BREAKDOWN
-# ============================================================
-
-st.divider()
-st.subheader("🌊 Market Regime Breakdown")
-
-col_r1, col_r2 = st.columns(2)
-
-def render_regime_breakdown(df: pd.DataFrame, name: str, col):
-    with col:
-        st.markdown(f"**{name}**")
-        if df.empty or "regime" not in df.columns:
-            st.info("No data yet.")
-            return
-
-        # Filter out N/A and None regimes (cycle heartbeats)
-        regime_df = df[df["regime"].isin(["TREND", "RANGE", "UNCLEAR"])]
-        if regime_df.empty:
-            st.info("No regime data yet — bot is running but all cycles returned HOLD.")
-            return
-
-        regime_counts = regime_df["regime"].value_counts()
-        fig = go.Figure(go.Pie(
-            labels=regime_counts.index,
-            values=regime_counts.values,
-            hole=0.4,
-            marker_colors=["#3b82f6", "#f59e0b", "#6b7280"],
-        ))
-        fig.update_layout(
-            height=250,
-            showlegend=True,
-            margin=dict(l=0, r=0, t=0, b=0),
-            paper_bgcolor="rgba(0,0,0,0)",
+        st.caption(
+            "**Sharpe Ratio** = return ÷ risk (volatility). "
+            "Above 1.0: returns justify the risk. "
+            "Above 2.0: very strong risk-adjusted performance. "
+            "Below 0: strategy is losing money."
         )
-        st.plotly_chart(fig, use_container_width=True)
 
-render_regime_breakdown(con_log, "Conservative", col_r1)
-render_regime_breakdown(agg_log, "Aggressive",   col_r2)
+        buys  = [o for o in orders if "buy"  in str(o.side).lower()]
+        sells = [o for o in orders if "sell" in str(o.side).lower()]
+        b1, b2 = st.columns(2)
+        b1.metric("Buys",  len(buys))
+        b2.metric("Sells", len(sells))
+
+        orders_df = orders_to_df(orders)
+        if not orders_df.empty:
+            st.markdown("**Recent Trades:**")
+            st.dataframe(orders_df.head(10), use_container_width=True, hide_index=True)
+        else:
+            st.info("No completed trades yet.")
+
+render_strategy_stats(d["con_orders"], d["con_history"], "Conservative", con_start, col_con)
+render_strategy_stats(d["agg_orders"], d["agg_history"], "Aggressive",   agg_start, col_agg)
 
 # ============================================================
-# FULL LOG TABLE
+# SECTION 4 — LIVE MARKET REGIME
 # ============================================================
 
 st.divider()
-with st.expander("📄 Full Decision Log"):
-    all_logs = []
-    if not con_log.empty:
-        all_logs.append(con_log)
-    if not agg_log.empty:
-        all_logs.append(agg_log)
+st.subheader("🌊 Live Market Regime")
 
-    if all_logs:
-        combined = pd.concat(all_logs).sort_values("timestamp", ascending=False)
-        combined["timestamp"] = combined["timestamp"].dt.strftime("%Y-%m-%d %H:%M")
-        st.dataframe(combined, use_container_width=True, hide_index=True)
+st.markdown("""
+**What is Market Regime?**
+
+Market regime describes the current character of price movement for each asset, measured using ADX (Average Directional Index):
+
+- 🟢 **TREND** (ADX > 25) — Price moving strongly in one direction. Momentum strategies work best here. Both Conservative and Aggressive strategies trade in TREND regime.
+- 🟡 **RANGE** (ADX < 20) — Price moving sideways. Mean reversion works better. Only the Aggressive strategy trades in RANGE regime.
+- ⚪ **UNCLEAR** (ADX 20–25) — Mixed signals. Both strategies skip these assets entirely.
+
+Higher ADX = stronger trend. The table below shows the current regime for each asset in the bot's universe.
+""")
+
+@st.cache_data(ttl=1800)
+def compute_live_regimes():
+    symbols = list(PERMANENT_SYMBOLS) + [
+        "AAPL", "MSFT", "NVDA", "TSLA", "META",
+        "PLTR", "COIN", "MSTR",
+        "BTC/USD", "ETH/USD", "SOL/USD",
+    ]
+    excluded = {s.upper() for s in EXCLUDED_SYMBOLS}
+    symbols  = [s for s in dict.fromkeys(symbols) if s.upper() not in excluded]
+
+    rows = []
+    for symbol in symbols:
+        try:
+            df = alpaca_con.get_bars(symbol, lookback_days=30)
+            if df.empty:
+                continue
+            df     = compute_all(df)
+            regime = regime_summary(df)
+            rows.append({
+                "Symbol":      symbol,
+                "Regime":      regime.get("regime", "UNCLEAR"),
+                "ADX":         round(float(regime.get("adx", 0)), 1),
+                "Description": regime.get("description", ""),
+            })
+        except Exception:
+            continue
+
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).sort_values(["Regime", "ADX"], ascending=[True, False])
+
+regime_df = compute_live_regimes()
+
+if not regime_df.empty:
+    def style_regime(val):
+        if val == "TREND":   return "background-color: #dcfce7; color: #166534; font-weight: bold"
+        if val == "RANGE":   return "background-color: #fef9c3; color: #854d0e; font-weight: bold"
+        if val == "UNCLEAR": return "background-color: #f3f4f6; color: #6b7280"
+        return ""
+
+    st.dataframe(
+        regime_df.style.applymap(style_regime, subset=["Regime"]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    r1, r2, r3 = st.columns(3)
+    r1.metric("🟢 TREND",   len(regime_df[regime_df["Regime"] == "TREND"]),
+              help="Conservative + Aggressive can trade")
+    r2.metric("🟡 RANGE",   len(regime_df[regime_df["Regime"] == "RANGE"]),
+              help="Aggressive only can trade")
+    r3.metric("⚪ UNCLEAR", len(regime_df[regime_df["Regime"] == "UNCLEAR"]),
+              help="Both strategies skip")
+else:
+    st.info("Loading regime data...")
+
+# ============================================================
+# SECTION 5 — FULL ORDER HISTORY
+# ============================================================
+
+st.divider()
+with st.expander("📄 Full Order History (last 30 days)"):
+    rows = []
+    for o in d["con_orders"]:
+        try:
+            rows.append({
+                "Strategy": "Conservative",
+                "Time":     pd.to_datetime(str(o.filled_at)).tz_convert(ET).strftime("%Y-%m-%d %H:%M"),
+                "Symbol":   str(o.symbol),
+                "Side":     str(o.side).replace("OrderSide.", "").upper(),
+                "Qty":      float(o.filled_qty or 0),
+                "Price":    f"${float(o.filled_avg_price or 0):,.4f}",
+            })
+        except Exception:
+            continue
+    for o in d["agg_orders"]:
+        try:
+            rows.append({
+                "Strategy": "Aggressive",
+                "Time":     pd.to_datetime(str(o.filled_at)).tz_convert(ET).strftime("%Y-%m-%d %H:%M"),
+                "Symbol":   str(o.symbol),
+                "Side":     str(o.side).replace("OrderSide.", "").upper(),
+                "Qty":      float(o.filled_qty or 0),
+                "Price":    f"${float(o.filled_avg_price or 0):,.4f}",
+            })
+        except Exception:
+            continue
+
+    if rows:
+        all_df = pd.DataFrame(rows).sort_values("Time", ascending=False)
+        st.dataframe(all_df, use_container_width=True, hide_index=True)
     else:
-        st.info("No decisions logged yet.")
+        st.info("No completed orders in the last 30 days.")
 
 # ============================================================
-# AUTO REFRESH
+# REFRESH
 # ============================================================
 
 st.divider()
-st.caption("Dashboard auto-refreshes every 5 minutes.")
+st.caption("Portfolio + trades refresh every 5 min · Regime refreshes every 30 min")
 
 if st.button("🔄 Refresh Now"):
+    st.cache_data.clear()
     st.rerun()
 
-# Auto-refresh every 5 minutes
 st.markdown(
-    """
-    <script>
-    setTimeout(function() { window.location.reload(); }, 300000);
-    </script>
-    """,
+    """<script>setTimeout(function(){window.location.reload();},300000);</script>""",
     unsafe_allow_html=True,
 )

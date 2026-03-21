@@ -32,6 +32,7 @@ from alpaca.data.timeframe import TimeFrame
 from shared.config import ALPACA_BASE_URL
 
 logger = logging.getLogger(__name__)
+
 ET = ZoneInfo("America/New_York")
 
 
@@ -42,11 +43,14 @@ class AlpacaClient:
     """
 
     def __init__(self, api_key: str, secret_key: str):
+        # Trading client — places orders, checks account
         self.trading = TradingClient(
             api_key=api_key,
             secret_key=secret_key,
-            paper=True,
+            paper=True,  # ALWAYS paper trading — never real money
         )
+
+        # Data clients — fetches price history and live quotes
         self.stock_data = StockHistoricalDataClient(
             api_key=api_key,
             secret_key=secret_key,
@@ -55,6 +59,7 @@ class AlpacaClient:
             api_key=api_key,
             secret_key=secret_key,
         )
+
         logger.info("✅ Alpaca client initialized (paper trading mode)")
 
     # ============================================================
@@ -93,7 +98,10 @@ class AlpacaClient:
         lookback_days: int = 30,
         timeframe: TimeFrame = TimeFrame.Hour,
     ) -> pd.DataFrame:
-        """Fetches historical OHLCV bars for a stock."""
+        """
+        Fetches historical OHLCV bars for a stock.
+        Returns a DataFrame with columns: open, high, low, close, volume
+        """
         try:
             start = datetime.now(ET) - timedelta(days=lookback_days)
             request = StockBarsRequest(
@@ -103,11 +111,15 @@ class AlpacaClient:
             )
             bars = self.stock_data.get_stock_bars(request)
             df = bars.df
+
+            # Flatten multi-index if present
             if isinstance(df.index, pd.MultiIndex):
                 df = df.xs(symbol, level="symbol")
+
             df = df[["open", "high", "low", "close", "volume"]].copy()
             df.index = pd.to_datetime(df.index)
             return df
+
         except Exception as e:
             logger.error(f"❌ Failed to fetch stock bars for {symbol}: {e}")
             return pd.DataFrame()
@@ -118,7 +130,10 @@ class AlpacaClient:
         lookback_days: int = 30,
         timeframe: TimeFrame = TimeFrame.Hour,
     ) -> pd.DataFrame:
-        """Fetches historical OHLCV bars for crypto. Symbol format: 'BTC/USD'"""
+        """
+        Fetches historical OHLCV bars for crypto.
+        Symbol format: 'BTC/USD', 'ETH/USD'
+        """
         try:
             start = datetime.now(ET) - timedelta(days=lookback_days)
             request = CryptoBarsRequest(
@@ -128,11 +143,14 @@ class AlpacaClient:
             )
             bars = self.crypto_data.get_crypto_bars(request)
             df = bars.df
+
             if isinstance(df.index, pd.MultiIndex):
                 df = df.xs(symbol, level="symbol")
+
             df = df[["open", "high", "low", "close", "volume"]].copy()
             df.index = pd.to_datetime(df.index)
             return df
+
         except Exception as e:
             logger.error(f"❌ Failed to fetch crypto bars for {symbol}: {e}")
             return pd.DataFrame()
@@ -168,43 +186,30 @@ class AlpacaClient:
     def place_limit_order(
         self,
         symbol: str,
-        side: str,
+        side: str,           # "buy" or "sell"
         qty: float,
         limit_price: float,
         take_profit: float,
         stop_loss: float,
     ) -> Optional[dict]:
         """
-        Places an order with appropriate type based on asset:
-        - Crypto: simple market order (bracket not supported by Alpaca)
-        - Stocks: limit bracket order with stop-loss and take-profit
+        Places a limit order with take-profit and stop-loss.
+        Uses bracket order so both exits are set automatically.
+
+        Args:
+            symbol:      e.g. "AAPL" or "BTC/USD"
+            side:        "buy" or "sell"
+            qty:         number of shares/coins
+            limit_price: max price willing to pay (buy) or min to accept (sell)
+            take_profit: price to automatically take profit
+            stop_loss:   price to automatically cut loss
         """
         try:
             order_side = OrderSide.BUY if side == "buy" else OrderSide.SELL
 
-            # Crypto — simple market order
-            if self.is_crypto(symbol):
-                order_data = MarketOrderRequest(
-                    symbol=symbol,
-                    qty=qty,
-                    side=order_side,
-                    time_in_force=TimeInForce.GTC,
-                )
-                order = self.trading.submit_order(order_data)
-                logger.info(
-                    f"✅ Crypto order placed: {side.upper()} {qty} {symbol} @ market"
-                )
-                return order
-
-            # Stocks — whole shares only with bracket order
-            whole_qty = int(qty)
-            if whole_qty == 0:
-                logger.warning(f"⚠️  {symbol} qty rounded to 0 — skipping order")
-                return None
-
             order_data = LimitOrderRequest(
                 symbol=symbol,
-                qty=whole_qty,
+                qty=qty,
                 side=order_side,
                 time_in_force=TimeInForce.DAY,
                 limit_price=round(limit_price, 2),
@@ -212,35 +217,16 @@ class AlpacaClient:
                 take_profit={"limit_price": round(take_profit, 2)},
                 stop_loss={"stop_price": round(stop_loss, 2)},
             )
+
             order = self.trading.submit_order(order_data)
             logger.info(
-                f"✅ Stock order placed: {side.upper()} {whole_qty} {symbol} "
+                f"✅ Order placed: {side.upper()} {qty} {symbol} "
                 f"@ ${limit_price:.2f} | TP: ${take_profit:.2f} | SL: ${stop_loss:.2f}"
             )
             return order
 
         except Exception as e:
             logger.error(f"❌ Failed to place order for {symbol}: {e}")
-            return None
-
-    def place_crypto_stop_sell(
-        self,
-        symbol: str,
-        qty: float,
-    ) -> Optional[dict]:
-        """Places a market sell order for crypto — used for manual stop-loss."""
-        try:
-            order_data = MarketOrderRequest(
-                symbol=symbol,
-                qty=qty,
-                side=OrderSide.SELL,
-                time_in_force=TimeInForce.GTC,
-            )
-            order = self.trading.submit_order(order_data)
-            logger.info(f"✅ Crypto stop-sell placed: {qty} {symbol}")
-            return order
-        except Exception as e:
-            logger.error(f"❌ Failed to place crypto stop-sell for {symbol}: {e}")
             return None
 
     def cancel_all_orders(self):
@@ -252,7 +238,10 @@ class AlpacaClient:
             logger.error(f"❌ Failed to cancel orders: {e}")
 
     def close_all_positions(self):
-        """Closes all open positions at market price. Emergency use only."""
+        """
+        Closes all open positions at market price.
+        Only called by kill switch — emergency use only.
+        """
         try:
             self.trading.close_all_positions(cancel_orders=True)
             logger.info("✅ All positions closed.")
@@ -268,6 +257,65 @@ class AlpacaClient:
             logger.error(f"❌ Failed to fetch open orders: {e}")
             return []
 
+    def get_closed_orders(self, days_back: int = 30) -> list:
+        """
+        Returns filled/closed orders from the last N days.
+        Used by dashboard to show trade history without log files.
+        """
+        try:
+            after = datetime.now(ET) - timedelta(days=days_back)
+            request = GetOrdersRequest(
+                status=QueryOrderStatus.CLOSED,
+                after=after,
+                limit=100,
+            )
+            orders = self.trading.get_orders(request)
+            # Only return filled orders
+            return [o for o in orders if str(o.status) in ("filled", "OrderStatus.FILLED")]
+        except Exception as e:
+            logger.error(f"❌ Failed to fetch closed orders: {e}")
+            return []
+
+    def get_portfolio_history(self, days_back: int = 30) -> pd.DataFrame:
+        """
+        Returns daily portfolio value history.
+        Used by dashboard for equity curve and Sharpe ratio.
+        Returns DataFrame with columns: date, value
+        """
+        try:
+            import requests as req
+            headers = {
+                "APCA-API-KEY-ID":     self.trading._api_key,
+                "APCA-API-SECRET-KEY": self.trading._secret_key,
+            }
+            url    = f"{ALPACA_BASE_URL}/v2/account/portfolio/history"
+            params = {
+                "period":    f"{days_back}D",
+                "timeframe": "1D",
+                "intraday_reporting": "market_hours",
+            }
+            response = req.get(url, headers=headers, params=params, timeout=10)
+            if response.status_code != 200:
+                logger.warning(f"Portfolio history returned {response.status_code}")
+                return pd.DataFrame()
+
+            data       = response.json()
+            timestamps = data.get("timestamp", [])
+            equity     = data.get("equity", [])
+
+            if not timestamps or not equity:
+                return pd.DataFrame()
+
+            df = pd.DataFrame({
+                "date":  pd.to_datetime(timestamps, unit="s", utc=True).tz_convert(ET),
+                "value": equity,
+            })
+            return df.dropna()
+
+        except Exception as e:
+            logger.error(f"❌ Failed to fetch portfolio history: {e}")
+            return pd.DataFrame()
+
     # ============================================================
     # HELPERS
     # ============================================================
@@ -277,13 +325,19 @@ class AlpacaClient:
         return "/" in symbol
 
     def get_bars(self, symbol: str, lookback_days: int = 30) -> pd.DataFrame:
-        """Unified bar fetcher — routes to stock or crypto client."""
+        """
+        Unified bar fetcher — automatically routes to
+        stock or crypto client based on symbol format.
+        """
         if self.is_crypto(symbol):
             return self.get_crypto_bars(symbol, lookback_days)
         return self.get_stock_bars(symbol, lookback_days)
 
     def get_price(self, symbol: str) -> Optional[float]:
-        """Unified price fetcher — routes to stock or crypto client."""
+        """
+        Unified price fetcher — automatically routes to
+        stock or crypto client based on symbol format.
+        """
         if self.is_crypto(symbol):
             return self.get_crypto_price(symbol)
         return self.get_stock_price(symbol)
@@ -296,12 +350,18 @@ class AlpacaClient:
         price: float,
     ) -> float:
         """
-        Calculates position size.
-        Crypto: fractional (6 decimal places)
-        Stocks: fractional (2 decimal places) — rounded to whole in place_limit_order
+        Calculates how many shares/coins to buy.
+
+        Formula:
+            dollar_amount = portfolio_value × position_pct
+            qty = dollar_amount / current_price
+
+        Rounds down to avoid exceeding budget.
+        Crypto supports fractional, stocks rounded to 2 decimals.
         """
         dollar_amount = portfolio_value * position_pct
         qty = dollar_amount / price
+
         if self.is_crypto(symbol):
-            return round(qty, 6)
-        return round(qty, 2)
+            return round(qty, 6)   # Crypto: up to 6 decimal places
+        return round(qty, 2)       # Stocks: fractional shares

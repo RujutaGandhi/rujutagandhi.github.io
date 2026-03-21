@@ -21,8 +21,9 @@ from shared.config import (
     ALPACA_BASE_URL,
     ANTHROPIC_API_KEY,
     ALERT_EMAIL_FROM,
-    ALERT_EMAIL_PASSWORD,
     ALERT_EMAIL_TO,
+    EXCLUDED_SYMBOLS,
+    PERMANENT_SYMBOLS,
     CONSERVATIVE,
     AGGRESSIVE,
 )
@@ -84,21 +85,23 @@ check(
     "Set ANTHROPIC_API_KEY in .env — should start with sk-ant-"
 )
 
-print("\nEmail Alerts:")
+print("\nEmail Alerts (SendGrid):")
 check(
     "From address present",
     bool(ALERT_EMAIL_FROM) and "@" in str(ALERT_EMAIL_FROM),
     "Set ALERT_EMAIL_FROM in .env"
 )
 check(
-    "App password present",
-    bool(ALERT_EMAIL_PASSWORD) and "your_" not in str(ALERT_EMAIL_PASSWORD),
-    "Set ALERT_EMAIL_PASSWORD in .env"
-)
-check(
     "To address present",
     bool(ALERT_EMAIL_TO) and "@" in str(ALERT_EMAIL_TO),
     "Set ALERT_EMAIL_TO in .env"
+)
+# Check SendGrid key via env directly (not imported from config)
+sendgrid_key = os.getenv("SENDGRID_API_KEY", "")
+check(
+    "SendGrid API key present",
+    bool(sendgrid_key) and "your_" not in sendgrid_key,
+    "Set SENDGRID_API_KEY in .env"
 )
 
 print("\nStrategy Config:")
@@ -131,6 +134,33 @@ check(
     "Aggressive max position = 15%",
     AGGRESSIVE["max_position_pct"] == 0.15,
     f"Got: {AGGRESSIVE['max_position_pct']}"
+)
+
+print("\nTrading Universe — Exclusions & Permanents:")
+check(
+    "AMZN in EXCLUDED_SYMBOLS",
+    "AMZN" in [s.upper() for s in EXCLUDED_SYMBOLS],
+    f"EXCLUDED_SYMBOLS={EXCLUDED_SYMBOLS}"
+)
+check(
+    "UBER in PERMANENT_SYMBOLS",
+    "UBER" in [s.upper() for s in PERMANENT_SYMBOLS],
+    f"PERMANENT_SYMBOLS={PERMANENT_SYMBOLS}"
+)
+check(
+    "No overlap between EXCLUDED and PERMANENT",
+    len({s.upper() for s in EXCLUDED_SYMBOLS} & {s.upper() for s in PERMANENT_SYMBOLS}) == 0,
+    "A symbol cannot be both excluded and permanent"
+)
+check(
+    "AMZN not in conservative fallback stocks",
+    "AMZN" not in [s.upper() for s in CONSERVATIVE.get("stocks", [])],
+    "AMZN should never appear in any stock list"
+)
+check(
+    "AMZN not in aggressive fallback stocks",
+    "AMZN" not in [s.upper() for s in AGGRESSIVE.get("stocks", [])],
+    "AMZN should never appear in any stock list"
 )
 
 # --- Summary ---
