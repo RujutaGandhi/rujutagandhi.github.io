@@ -589,7 +589,7 @@
       </div>
       <div class="demo-card" onclick="openModal('babu')" style="cursor:pointer;">
         <div class="demo-icon">🐒</div>
-        <h3>Babu Learns Gujarati V2.2</h3>
+        <h3>Babu Learns Gujarati V2.3</h3>
         <p>A conversation-first language app helping Indian-American kids aged 3–10 learn Gujarati through picture flashcards, authentic Gujarati voice audio, and emoji quizzes — no reading required.</p>
         <div class="demo-tech">
           <span>Sarvam Bulbul v3</span>
@@ -770,8 +770,7 @@
       <div>
         <div class="modal-icon">🐒</div>
         <div class="modal-title">Babu Learns Gujarati</div>
-        <div class="modal-subtitle">Gujarati Language App for Kids · Sarvam Bulbul v3 · Supabase · GitHub Pages</div>
-      </div>
+        <div class="modal-subtitle">Gujarati Language App for Kids · Sarvam Bulbul v3 + Saaras ASR · Supabase · GitHub Pages</div>      </div>
       <button class="modal-close" onclick="closeModalById('modal-overlay-babu')">✕</button>
     </div>
     <div class="modal-body">
@@ -783,9 +782,8 @@
 
       <div class="modal-section">
         <div class="modal-section-label">What I Built</div>
-        <p>A mobile-first web app for children who cannot yet read. Babu (a cartoon monkey) speaks every word aloud in authentic Gujarati using Sarvam Bulbul v3 — a model trained on Indic languages. Children swipe right for "Got it" and left for "Again" on picture-only flashcards, then take a picture-choice quiz. 95 words across 6 topics. No text on cards, no buttons, no friction.</p>
+        <p>A mobile-first web app for children who cannot yet read. Babu (a cartoon monkey) speaks every word aloud in authentic Gujarati using Sarvam Bulbul v3 — a model trained on Indic languages. Children swipe right for "Got it" and left for "Again" on picture-only flashcards, practice pronunciation with real-time feedback, then take a picture-choice quiz. 95 words across 6 topics. V2.3 adds pronunciation checking: the child says the word, and Babu responds with animated reactions, star ratings, and optional phoneme-level feedback.</p>      
       </div>
-
      <div class="modal-section">
         <div class="modal-section-label">Key Product Decisions</div>
         <ul>
@@ -800,6 +798,12 @@
           <li>Quiz audio sequencing fixed — congrats plays immediately on correct answer, new word plays only after navigating to the next question. Wrong answer says "Try karo!" then pauses before repeating the word.</li>
           <li>Consistent jungle green background across card, quiz, and reward screens — matches Duolingo's approach of keeping the learning environment visually stable.</li>
           <li>Topic cards show Gujarati transliteration below the English name — toggling the script switch shows native script instead.</li>
+          <li><strong>V2.3 Silence Detection:</strong> Recording auto-stops after 1.5 seconds of silence using AudioContext volume monitoring — children no longer need to manually tap the mic button twice. Volume threshold set at 30 (configurable) with a hard 6-second limit to prevent accidental long recordings.</li>
+          <li><strong>Star-based feedback over colors:</strong> Replaced confusing green/amber/red mic button with a universal 5-star rating system (5 stars = 75%+ similarity, 3 stars = 50-75%, 1 star = <50%). Stars are consistent with the quiz reward system and avoid color-blindness issues.</li>
+          <li><strong>Babu character reactions:</strong> Animated emoji responses based on performance — Babu jumps for perfect pronunciation (75%+), nods for good attempts (50-75%), and scratches his head for struggles (<50%). Reuses quiz screen animations for visual consistency.</li>
+          <li><strong>Sound feedback via Web Audio API:</strong> Programmatic tone generation (chime/beep/boop) provides instant auditory reinforcement without requiring MP3 files. Sounds work even when the child looks away from the screen.</li>
+          <li><strong>Phoneme feedback toggle:</strong> Optional detailed feedback mode (off by default) shows character-by-character comparison with red/green highlighting and phoneme-specific pronunciation tips. Progressive disclosure keeps the UX simple for younger kids while offering educational depth for advanced learners.</li>
+          <li><strong>Sarvam Saaras ASR v3:</strong> Topic-based routing sends numbers through verbatim mode + Transliterate API (2 calls) to preserve "પંદર" → "pandar" instead of "15". All other topics use translit mode (1 call) for romanized output.</li>
         </ul>
       </div>
 <div class="modal-section">
@@ -817,15 +821,17 @@
           <span>GitHub Pages</span>
           <span>Web Speech API (fallback)</span>
           <span>CSS Swipe Gestures</span>
+          <span>Sarvam Saaras ASR v3</span>
         </div>
       </div>
 
       <div class="modal-section">
         <div class="modal-section-label">What's Next</div>
         <ul>
-          <li><strong>V2.3:</strong> Pronunciation feedback via Sarvam STT — child speaks the word, Babu responds</li>
-          <li><strong>V2.5:</strong> iOS App Store via Capacitor wrapper</li>
-          <li><strong>V3:</strong> Parent dashboard, cross-device sync, community flag review,move to different server</li>
+          <li><strong>V3:</strong> Add authentication / login features and store progress history; add additinal topics</li>
+          <li><strong>V4:</strong> Add practice conversations or stories</li>
+          <li><strong>V5:</strong> iOS App Store via Capacitor wrapper, payments for app download</li>
+          <li><strong>V6:</strong> Parent dashboard, cross-device sync, community flag review,move to different server</li>
         </ul>
       </div>
 
