@@ -287,6 +287,105 @@ body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239
 }
 .noise-warning.visible { display: block; }
 
+/* ═══ PRONUNCIATION FEEDBACK ═══ */
+.pronunciation-feedback {
+  width: min(340px, 90vw);
+  background: white;
+  border-radius: 24px;
+  padding: 24px 20px;
+  margin-top: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.pronunciation-feedback.visible { display: flex; }
+
+.feedback-babu {
+  font-size: 60px;
+  line-height: 1;
+}
+.feedback-babu.jump { animation: babuJump 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.feedback-babu.nod { animation: babuNod 0.6s ease-in-out forwards; }
+.feedback-babu.scratch { animation: babuScratch 0.8s ease-in-out forwards; }
+
+.feedback-stars {
+  font-size: 32px;
+  letter-spacing: 4px;
+  line-height: 1;
+}
+
+.feedback-message-gu {
+  font-family: 'Noto Sans Gujarati', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--teal);
+  text-align: center;
+}
+.feedback-message-en {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--mid);
+  text-align: center;
+  margin-top: -6px;
+}
+
+/* Phoneme details — only visible when toggle ON */
+.phoneme-details {
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1.5px solid var(--light);
+  margin-top: 6px;
+  display: none;
+}
+.phoneme-details.visible { display: block; }
+
+.phoneme-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.phoneme-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.88rem;
+}
+.phoneme-label {
+  font-weight: 700;
+  color: var(--mid);
+  min-width: 70px;
+  flex-shrink: 0;
+}
+.phoneme-text {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+  word-break: break-all;
+}
+.phoneme-match {
+  color: var(--success);
+}
+.phoneme-diff {
+  color: #F43F5E;
+  background: rgba(244,63,94,0.1);
+  padding: 2px 3px;
+  border-radius: 3px;
+}
+.phoneme-tip {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--teal);
+  background: var(--teal-light);
+  padding: 8px 12px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+
 /* ═══ QUIZ ═══ */
 #screen-quiz   { align-items: center; padding-bottom: 32px; background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%); }
 .quiz-body { width: 100%; max-width: 460px; padding: 0 20px 20px; align-self: center; flex: 1; display: flex; flex-direction: column; gap: 14px; }
@@ -326,6 +425,25 @@ body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239
   0%   { transform: rotateY(0); }
   50%  { transform: rotateY(180deg) scale(1.2); }
   100% { transform: rotateY(360deg); }
+}
+.quiz-babu-emoji.nod {
+  animation: babuNod 0.6s ease-in-out forwards;
+}
+@keyframes babuNod {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  25%      { transform: translateY(-8px) rotate(5deg); }
+  50%      { transform: translateY(0) rotate(0); }
+  75%      { transform: translateY(-5px) rotate(-3deg); }
+}
+.quiz-babu-emoji.scratch {
+  animation: babuScratch 0.8s ease-in-out forwards;
+}
+@keyframes babuScratch {
+  0%   { transform: rotate(0); }
+  25%  { transform: rotate(-15deg) translateX(-5px); }
+  50%  { transform: rotate(15deg) translateX(5px); }
+  75%  { transform: rotate(-10deg); }
+  100% { transform: rotate(0); }
 }
 
 .quiz-prompt-word {
@@ -448,6 +566,14 @@ body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239
     </label>
   </div>
 
+  <div class="script-toggle-row" style="margin-top:8px;">
+    <span class="toggle-label">Show detailed feedback</span>
+    <label class="toggle-switch" aria-label="Show detailed pronunciation feedback">
+      <input type="checkbox" id="toggle-phoneme-feedback" onchange="togglePhonemeFeedback(this.checked)">
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    </label>
+  </div>
+
   <div class="topics-grid" role="list">
     <div id="topics-grid-dynamic"></div>
   </div>
@@ -503,6 +629,29 @@ body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239
     <button class="audio-btn" id="gotit-btn" onclick="markLearned()" aria-label="Got it">✓</button>
   </div>
   <div class="noise-warning" id="noise-warning">🔇 Too noisy — find a quieter spot and try again</div>
+  
+  <!-- Pronunciation Feedback -->
+  <div class="pronunciation-feedback" id="pronunciation-feedback">
+    <div class="feedback-babu" id="feedback-babu">🐒</div>
+    <div class="feedback-stars" id="feedback-stars"></div>
+    <div class="feedback-message-gu" id="feedback-message-gu"></div>
+    <div class="feedback-message-en" id="feedback-message-en"></div>
+    
+    <!-- Phoneme details (only shown if toggle is ON) -->
+    <div class="phoneme-details" id="phoneme-details">
+      <div class="phoneme-comparison">
+        <div class="phoneme-row">
+          <span class="phoneme-label">Expected:</span>
+          <span class="phoneme-text" id="phoneme-expected"></span>
+        </div>
+        <div class="phoneme-row">
+          <span class="phoneme-label">You said:</span>
+          <span class="phoneme-text" id="phoneme-spoken"></span>
+        </div>
+      </div>
+      <div class="phoneme-tip" id="phoneme-tip"></div>
+    </div>
+  </div>
 </section>
 
 <!-- ═══ QUIZ — animated Babu, picture choice ═══ -->
@@ -605,11 +754,12 @@ const BABU_SPEECHES = ["Kem chho! Let's learn! 👋","Tap a topic! 🎯","You're
 // ══ STATE ══
 let state = {
   showScript: localStorage.getItem('babu-script') === 'true',
+  showPhonemeFeedback: localStorage.getItem('babu-phoneme-feedback') === 'true',
   topic: null, stackIdx: 0, cardIdx: 0,
   learnedCards: [], reviewCards: [],
   quizQuestions: [], quizIdx: 0, quizScore: 0,
   wrongAttempts: 0,  // track wrong attempts per question
-  micState: 'idle',  // idle | recording | processing | green | amber | red
+  micState: 'idle',  // idle | recording | processing | feedback
   flaggedCards:    JSON.parse(localStorage.getItem('babu-flags')  || '[]'),
   completedStacks: JSON.parse(localStorage.getItem('babu-stacks') || '{}'),
   totalStars:      parseInt(localStorage.getItem('babu-stars')    || '0'),
@@ -618,6 +768,7 @@ let state = {
 window.addEventListener('DOMContentLoaded', async () => {
   await loadContent();
   document.getElementById('toggle-script').checked = state.showScript;
+  document.getElementById('toggle-phoneme-feedback').checked = state.showPhonemeFeedback;
   renderTopicCards();
   initSwipe();
 });
@@ -832,6 +983,12 @@ function applyScriptToggle() {
   const guEl = document.getElementById('card-gujarati');
   if (!guEl) return;
   state.showScript ? guEl.classList.add('visible') : guEl.classList.remove('visible');
+}
+
+function togglePhonemeFeedback(show) {
+  state.showPhonemeFeedback = show;
+  localStorage.setItem('babu-phoneme-feedback', show);
+  showToast(show ? 'Detailed feedback on ✓' : 'Detailed feedback off');
 }
 
 // ══ AUDIO (SARVAM) ══
@@ -1171,20 +1328,21 @@ function showToast(msg) {
 // PRONUNCIATION CHECKER
 // ══════════════════════════════════════════
 
-const MIC_COLORS = {
-  idle:       'mic-idle',
-  recording:  'mic-recording',
-  processing: 'mic-processing',
-  green:      'mic-green',
-  amber:      'mic-amber',
-  red:        'mic-red',
-};
-
+// ── Mic state management ──────────────────────────────────────
 function setMicState(s) {
   state.micState = s;
   const btn = document.getElementById('mic-btn');
   if (!btn) return;
-  btn.className = 'mic-btn ' + (MIC_COLORS[s] || 'mic-idle');
+  
+  // Map states to CSS classes
+  const stateClasses = {
+    'idle': 'mic-idle',
+    'recording': 'mic-recording',
+    'processing': 'mic-processing',
+    'feedback': 'mic-idle', // Shows as idle when feedback is visible
+  };
+  
+  btn.className = 'mic-btn ' + (stateClasses[s] || 'mic-idle');
 }
 
 // ── Levenshtein edit distance ─────────────────────────────────
@@ -1207,6 +1365,219 @@ function pronunciationSimilarity(expected, got) {
   return 1 - levenshtein(a, b) / maxLen;
 }
 
+// ── Silence Detection Constants ───────────────────────────────
+const SILENCE_THRESHOLD = 30;      // Volume level (0-255)
+const SILENCE_DURATION = 1500;     // Milliseconds of silence before auto-stop
+const MAX_RECORDING_TIME = 6000;   // Hard stop limit (6 seconds)
+
+// ── Sound Generation (Web Audio API) ──────────────────────────
+function playFeedbackSound(type) {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    if (type === 'chime') {
+      // Two ascending tones (C5 → E5) - cheerful
+      oscillator.frequency.value = 523.25; // C5
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.15);
+      
+      // Second tone
+      setTimeout(() => {
+        const osc2 = audioContext.createOscillator();
+        const gain2 = audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioContext.destination);
+        osc2.frequency.value = 659.25; // E5
+        gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        osc2.start();
+        osc2.stop(audioContext.currentTime + 0.2);
+      }, 120);
+      
+    } else if (type === 'beep') {
+      // Single neutral beep (A4)
+      oscillator.frequency.value = 440; // A4
+      gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.18);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.18);
+      
+    } else if (type === 'boop') {
+      // Gentle boop (G3) - low but not harsh
+      oscillator.frequency.value = 196; // G3
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.25);
+    }
+  } catch (err) {
+    console.error('Sound generation error:', err);
+  }
+}
+
+// ── Feedback Logic ────────────────────────────────────────────
+function getStarCount(similarity) {
+  if (similarity >= 0.75) return 5;
+  if (similarity >= 0.50) return 3;
+  return 1;
+}
+
+function getSoundType(similarity) {
+  if (similarity >= 0.75) return 'chime';
+  if (similarity >= 0.50) return 'beep';
+  return 'boop';
+}
+
+function getAnimationType(similarity) {
+  if (similarity >= 0.75) return 'jump';
+  if (similarity >= 0.50) return 'nod';
+  return 'scratch';
+}
+
+function getFeedbackMessages(similarity) {
+  if (similarity >= 0.90) {
+    return { gu: 'જબરદસ્ત!', en: 'Perfect!' };
+  } else if (similarity >= 0.75) {
+    return { gu: 'જબરદસ્ત!', en: 'Almost perfect!' };
+  } else if (similarity >= 0.60) {
+    return { gu: 'સારું!', en: 'Good job!' };
+  } else if (similarity >= 0.50) {
+    return { gu: 'સારું!', en: 'Keep going!' };
+  } else {
+    return { gu: 'ફરી કરો', en: 'Try again!' };
+  }
+}
+
+// ── Phoneme Highlighting ──────────────────────────────────────
+function highlightPhonemeDifferences(expected, spoken) {
+  const exp = expected.toLowerCase().trim();
+  const spk = spoken.toLowerCase().trim();
+  
+  const maxLen = Math.max(exp.length, spk.length);
+  let expectedHTML = '';
+  let spokenHTML = '';
+  
+  for (let i = 0; i < maxLen; i++) {
+    const expChar = exp[i] || '';
+    const spkChar = spk[i] || '';
+    
+    if (expChar === spkChar) {
+      expectedHTML += `<span class="phoneme-match">${expChar}</span>`;
+      spokenHTML += `<span class="phoneme-match">${spkChar}</span>`;
+    } else {
+      expectedHTML += `<span class="phoneme-diff">${expChar || '·'}</span>`;
+      spokenHTML += `<span class="phoneme-diff">${spkChar || '·'}</span>`;
+    }
+  }
+  
+  return { expectedHTML, spokenHTML };
+}
+
+function getPronunciationTip(expected, spoken) {
+  const exp = expected.toLowerCase();
+  const spk = spoken.toLowerCase();
+  
+  // Find first major difference
+  for (let i = 0; i < Math.max(exp.length, spk.length); i++) {
+    if (exp[i] !== spk[i]) {
+      const wrongChar = exp[i];
+      
+      // Phoneme-specific tips for common Gujarati sounds
+      const tips = {
+        'a': 'Try "a" like in "arm"',
+        'aa': 'Hold the "aa" sound longer',
+        'kh': 'Make a breathy "k" sound',
+        'th': 'Soft "th" like in "thumb"',
+        'dh': 'Soft "d" with breath',
+        'ph': 'Soft "p" with air',
+        'bh': 'Soft "b" with breath',
+        'ch': 'Like "ch" in "church"',
+        'r': 'Roll the "r" lightly',
+      };
+      
+      // Check for digraphs first (two-character sounds)
+      const twoChar = exp.slice(i, i + 2);
+      if (tips[twoChar]) return tips[twoChar];
+      
+      // Single character
+      if (tips[wrongChar]) return tips[wrongChar];
+      
+      // Generic tip
+      return `Focus on the "${wrongChar}" sound`;
+    }
+  }
+  
+  return 'Great pronunciation!';
+}
+
+// ── Display Feedback ──────────────────────────────────────────
+function showPronunciationFeedback(similarity, expected, spoken, gujaratiWord) {
+  const feedbackEl = document.getElementById('pronunciation-feedback');
+  const babuEl = document.getElementById('feedback-babu');
+  const starsEl = document.getElementById('feedback-stars');
+  const messageGuEl = document.getElementById('feedback-message-gu');
+  const messageEnEl = document.getElementById('feedback-message-en');
+  const phonemeDetailsEl = document.getElementById('phoneme-details');
+  const phonemeExpectedEl = document.getElementById('phoneme-expected');
+  const phonemeSpokenEl = document.getElementById('phoneme-spoken');
+  const phonemeTipEl = document.getElementById('phoneme-tip');
+  
+  // Calculate feedback components
+  const starCount = getStarCount(similarity);
+  const soundType = getSoundType(similarity);
+  const animationType = getAnimationType(similarity);
+  const messages = getFeedbackMessages(similarity);
+  
+  // Play sound
+  playFeedbackSound(soundType);
+  
+  // Animate Babu
+  babuEl.className = 'feedback-babu ' + animationType;
+  babuEl.addEventListener('animationend', () => {
+    babuEl.className = 'feedback-babu';
+  }, { once: true });
+  
+  // Display stars
+  const starFull = '⭐';
+  const starEmpty = '☆';
+  starsEl.textContent = starFull.repeat(starCount) + starEmpty.repeat(5 - starCount);
+  
+  // Display messages
+  messageGuEl.textContent = messages.gu;
+  messageEnEl.textContent = messages.en;
+  
+  // Phoneme details (only if toggle is ON)
+  if (state.showPhonemeFeedback) {
+    const highlighted = highlightPhonemeDifferences(expected, spoken);
+    phonemeExpectedEl.innerHTML = highlighted.expectedHTML;
+    phonemeSpokenEl.innerHTML = highlighted.spokenHTML;
+    phonemeTipEl.textContent = getPronunciationTip(expected, spoken, gujaratiWord);
+    phonemeDetailsEl.classList.add('visible');
+  } else {
+    phonemeDetailsEl.classList.remove('visible');
+  }
+  
+  // Show feedback
+  feedbackEl.classList.add('visible');
+  
+  // Change mic state to indicate feedback is showing
+  state.micState = 'feedback';
+  const micBtn = document.getElementById('mic-btn');
+  if (micBtn) micBtn.className = 'mic-btn mic-idle';
+}
+
+function hidePronunciationFeedback() {
+  const feedbackEl = document.getElementById('pronunciation-feedback');
+  feedbackEl.classList.remove('visible');
+}
+
 // ── SNR check — runs before submitting to ASR ─────────────────
 // Returns true if audio is clean enough to send.
 function checkSNR(analyser) {
@@ -1218,6 +1589,8 @@ function checkSNR(analyser) {
 
 // ── Waveform animation ────────────────────────────────────────
 let waveformRAF = null;
+let silenceMonitorRAF = null;
+let silenceStartTime = null;
 
 function startWaveform(analyser) {
   const bars = document.querySelectorAll('#mic-waveform .bar');
@@ -1245,6 +1618,56 @@ function stopWaveform() {
   });
 }
 
+// ── Silence Detection Monitoring ──────────────────────────────
+function startSilenceDetection(analyser) {
+  silenceStartTime = null;
+  
+  function checkSilence() {
+    if (state.micState !== 'recording') {
+      cancelAnimationFrame(silenceMonitorRAF);
+      silenceMonitorRAF = null;
+      return;
+    }
+    
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteTimeDomainData(data);
+    
+    // Calculate volume (amplitude)
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      const normalized = (data[i] - 128) / 128;
+      sum += normalized * normalized;
+    }
+    const volume = Math.sqrt(sum / data.length) * 255;
+    
+    if (volume < SILENCE_THRESHOLD) {
+      // User is silent
+      if (!silenceStartTime) {
+        silenceStartTime = Date.now();
+      } else if (Date.now() - silenceStartTime > SILENCE_DURATION) {
+        // Silent for long enough → auto-stop
+        stopRecording();
+        return;
+      }
+    } else {
+      // User is speaking → reset silence timer
+      silenceStartTime = null;
+    }
+    
+    silenceMonitorRAF = requestAnimationFrame(checkSilence);
+  }
+  
+  checkSilence();
+}
+
+function stopSilenceDetection() {
+  if (silenceMonitorRAF) {
+    cancelAnimationFrame(silenceMonitorRAF);
+    silenceMonitorRAF = null;
+  }
+  silenceStartTime = null;
+}
+
 // ── MediaRecorder state ───────────────────────────────────────
 let mediaRecorder  = null;
 let audioChunks    = [];
@@ -1259,12 +1682,14 @@ function stopRecording() {
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   if (audioContext) { audioContext.close(); audioContext = null; analyserNode = null; }
   stopWaveform();
+  stopSilenceDetection();
 }
 
 // ── Main mic tap handler ──────────────────────────────────────
 async function handleMicTap() {
-  // If currently green (correct), just reset to idle — child wants to retry
-  if (state.micState === 'green' || state.micState === 'amber' || state.micState === 'red') {
+  // If showing feedback, clear it and reset to idle
+  if (state.micState === 'feedback') {
+    hidePronunciationFeedback();
     setMicState('idle');
     document.getElementById('noise-warning').classList.remove('visible');
     return;
@@ -1284,6 +1709,7 @@ async function handleMicTap() {
   // Stop any currently playing audio first — no overlap
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   document.getElementById('noise-warning').classList.remove('visible');
+  hidePronunciationFeedback();
 
   try {
     micStream  = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -1299,6 +1725,7 @@ async function handleMicTap() {
 
     mediaRecorder.onstop = async () => {
       stopWaveform();
+      stopSilenceDetection();
 
       // SNR check — use analyser snapshot before context closes
       const snrOk = analyserNode ? checkSNR(analyserNode) : true;
@@ -1317,11 +1744,12 @@ async function handleMicTap() {
     mediaRecorder.start();
     setMicState('recording');
     startWaveform(analyserNode);
+    startSilenceDetection(analyserNode);
 
     // Auto-stop after 6 seconds max
     setTimeout(() => {
       if (state.micState === 'recording') stopRecording();
-    }, 6000);
+    }, MAX_RECORDING_TIME);
 
   } catch (err) {
     console.error('Mic error:', err);
@@ -1350,10 +1778,9 @@ async function submitToASR() {
     }
 
     const sim = pronunciationSimilarity(card.tr, data.transcript);
-
-    if      (sim >= 0.85) setMicState('green');
-    else if (sim >= 0.60) setMicState('amber');
-    else                  setMicState('red');
+    
+    // Show pronunciation feedback with stars, Babu animation, and sounds
+    showPronunciationFeedback(sim, card.tr, data.transcript, card.gu);
 
   } catch (err) {
     console.error('ASR submit error:', err);

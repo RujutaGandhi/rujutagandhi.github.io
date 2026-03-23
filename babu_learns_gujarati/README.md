@@ -15,6 +15,16 @@ Inspired by my own story: I want my toddlers to learn Gujarati in a fun and inte
 
 ---
 
+## Version History
+
+### V2.3 (Current)
+**Silence Detection + Star-Based Feedback**
+- Auto-stop recording after 1.5s of silence
+- Star rating system (5/3/1 stars) with Babu reactions
+- Sound feedback (chime/beep/boop)
+- Optional phoneme-level feedback toggle
+- See [V2.3 Implementation Summary](docs/V2.3_IMPLEMENTATION_SUMMARY.md)
+
 ## What's New in V2.2
 
 ### Audio — Pre-generated MP3s via GitHub Actions CI/CD
