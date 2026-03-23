@@ -1,0 +1,143 @@
+{
+  "timestamp": "2026-03-23T04:41:17.438Z",
+  "passed": 10,
+  "failed": 5,
+  "errored": 0,
+  "results": [
+    {
+      "en": "Mama",
+      "gu": "મમ્મી",
+      "expected": "mammi",
+      "got": "mummy",
+      "similarity": 0,
+      "passed": false,
+      "error": null
+    },
+    {
+      "en": "Dada",
+      "gu": "દાદા",
+      "expected": "daada",
+      "got": "dada",
+      "similarity": 0,
+      "passed": false,
+      "error": null
+    },
+    {
+      "en": "Hand",
+      "gu": "હાથ",
+      "expected": "haath",
+      "got": "haath",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    },
+    {
+      "en": "Eye",
+      "gu": "આંખ",
+      "expected": "aankh",
+      "got": "aankh",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    },
+    {
+      "en": "Happy",
+      "gu": "ખુશ",
+      "expected": "khush",
+      "got": "khush",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    },
+    {
+      "en": "Sad",
+      "gu": "ઉદાસ",
+      "expected": "udaas",
+      "got": "udaas",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    },
+    {
+      "en": "Apple",
+      "gu": "સફરજન",
+      "expected": "safarjan",
+      "got": "saffron",
+      "similarity": 0,
+      "passed": false,
+      "error": null
+    },
+    {
+      "en": "Orange",
+      "gu": "નારંગી",
+      "expected": "narangi",
+      "got": "narangi",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    },
+    {
+      "en": "Strawberry",
+      "gu": "સ્ટ્રોબેરી",
+      "expected": "strawberry",
+      "got": "strawberry",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    },
+    {
+      "en": "Red",
+      "gu": "લાલ",
+      "expected": "laal",
+      "got": "lal",
+      "similarity": 0,
+      "passed": false,
+      "error": null
+    },
+    {
+      "en": "Blue",
+      "gu": "ભૂરો",
+      "expected": "bhooro",
+      "got": "bhuro",
+      "similarity": 0,
+      "passed": false,
+      "error": null
+    },
+    {
+      "en": "One",
+      "gu": "એક",
+      "expected": "ek",
+      "got": "ek",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    },
+    {
+      "en": "Five",
+      "gu": "પાંચ",
+      "expected": "paanch",
+      "got": "paanch",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    },
+    {
+      "en": "Ten",
+      "gu": "દસ",
+      "expected": "das",
+      "got": "das",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    },
+    {
+      "en": "Fifteen",
+      "gu": "પંદર",
+      "expected": "pandar",
+      "got": "pandar",
+      "similarity": 1,
+      "passed": true,
+      "error": null
+    }
+  ]
+}
