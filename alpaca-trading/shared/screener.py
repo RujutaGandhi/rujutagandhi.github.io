@@ -189,6 +189,81 @@ def apply_filters(
 
 
 # ============================================================
+# PRICE FILTER — conservative only
+# ============================================================
+
+CONSERVATIVE_MIN_PRICE = 10.00   # No stocks under $10 for conservative
+
+def filter_by_price(
+    symbols:   list[str],
+    min_price: float,
+) -> list[str]:
+    """
+    Removes symbols trading below min_price.
+    Prevents penny stocks reaching Claude in the conservative strategy.
+
+    Fetches current prices in batch from Alpaca snapshot API.
+    Symbols that fail price fetch are kept (fail-open, not fail-closed).
+    Permanent symbols are always kept regardless of price.
+    """
+    if not symbols or min_price <= 0:
+        return symbols
+
+    permanent_upper = {s.upper() for s in PERMANENT_SYMBOLS}
+
+    try:
+        headers = {
+            "APCA-API-KEY-ID":     ALPACA_API_KEY_CONSERVATIVE,
+            "APCA-API-SECRET-KEY": ALPACA_SECRET_KEY_CONSERVATIVE,
+        }
+        # Only check non-permanent, non-crypto symbols
+        to_check = [
+            s for s in symbols
+            if s.upper() not in permanent_upper and "/" not in s
+        ]
+
+        if not to_check:
+            return symbols
+
+        # Alpaca snapshot endpoint — returns latest price for multiple symbols
+        response = requests.get(
+            "https://data.alpaca.markets/v2/stocks/snapshots",
+            headers=headers,
+            params={"symbols": ",".join(to_check)},
+            timeout=10,
+        )
+
+        if response.status_code != 200:
+            logger.warning(f"⚠️  Price filter fetch failed ({response.status_code}) — skipping filter")
+            return symbols
+
+        snapshots  = response.json()
+        below_min  = set()
+
+        for symbol, snap in snapshots.items():
+            try:
+                price = float(
+                    snap.get("latestTrade", {}).get("p") or
+                    snap.get("latestQuote", {}).get("ap") or 0
+                )
+                if 0 < price < min_price:
+                    below_min.add(symbol.upper())
+                    logger.info(f"🚫 [Screener] {symbol} filtered out — price ${price:.4f} < ${min_price:.2f} minimum")
+            except Exception:
+                continue
+
+        filtered = [s for s in symbols if s.upper() not in below_min]
+        if below_min:
+            logger.info(f"📊 Price filter removed {len(below_min)} penny stocks: {below_min}")
+
+        return filtered
+
+    except Exception as e:
+        logger.error(f"❌ Price filter failed: {e} — returning unfiltered list")
+        return symbols
+
+
+# ============================================================
 # MASTER SCREENER
 # ============================================================
 
@@ -196,8 +271,8 @@ def get_screened_symbols(strategy_type: str) -> list[str]:
     """
     Main entry point — returns screened symbol list for a strategy.
 
-    Conservative: smaller pool, large cap bias
-    Aggressive:   larger pool, includes momentum plays
+    Conservative: smaller pool, large cap bias, $10+ price filter
+    Aggressive:   larger pool, includes momentum plays, no price floor
 
     Args:
         strategy_type: "conservative" or "aggressive"
@@ -206,25 +281,25 @@ def get_screened_symbols(strategy_type: str) -> list[str]:
         List of stock symbols to scan this cycle
     """
     if strategy_type == "conservative":
-        # Conservative: top most-active only, smaller pool
-        raw = get_most_active_stocks(top_n=50)
+        raw        = get_most_active_stocks(top_n=50)
         max_stocks = CONSERVATIVE_POOL
 
     else:
-        # Aggressive: combine most-active + momentum
         active   = get_most_active_stocks(top_n=50)
         momentum = get_momentum_stocks(top_n=30)
-
-        # Combine, dedup, momentum stocks get added after active
         combined = active.copy()
         for s in momentum:
             if s not in combined:
                 combined.append(s)
-        raw = combined
+        raw        = combined
         max_stocks = AGGRESSIVE_POOL
 
-    # Apply filters (exclusions, permanents, cap)
+    # Apply exclusions, permanents, cap
     symbols = apply_filters(raw, max_stocks)
+
+    # Conservative only — filter out penny stocks before Claude is called
+    if strategy_type == "conservative":
+        symbols = filter_by_price(symbols, min_price=CONSERVATIVE_MIN_PRICE)
 
     if not symbols:
         logger.warning(
