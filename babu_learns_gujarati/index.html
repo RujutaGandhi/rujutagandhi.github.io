@@ -248,6 +248,45 @@ body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239
 #again-btn { background: rgba(255,107,53,0.9); color: white; }
 .audio-btn:hover { transform: scale(1.08); }
 
+/* ═══ MIC BUTTON — pronunciation checker ═══ */
+.mic-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.mic-btn {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid rgba(255,255,255,0.4); cursor: pointer;
+  font-size: 1.4rem; transition: background 0.25s, transform 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+  -webkit-tap-highlight-color: transparent;
+  background: rgba(255,255,255,0.9);
+}
+.mic-btn:active { transform: scale(0.94); }
+.mic-btn.mic-idle       { background: rgba(255,255,255,0.9); color: var(--ink); }
+.mic-btn.mic-recording  { background: #F7C948; color: white; }
+.mic-btn.mic-processing { background: #0EA5E9; color: white; }
+.mic-btn.mic-green      { background: #2ECC71; color: white; }
+.mic-btn.mic-amber      { background: #FF9A5C; color: white; }
+.mic-btn.mic-red        { background: #F43F5E; color: white; }
+.mic-waveform {
+  display: flex; align-items: center; gap: 2px; height: 18px;
+}
+.mic-waveform .bar {
+  width: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.5);
+  transition: height 0.1s;
+}
+.noise-warning {
+  width: min(300px, 84vw);
+  background: rgba(247,201,72,0.22);
+  border: 1.5px solid rgba(247,201,72,0.6);
+  border-radius: 14px; padding: 10px 16px;
+  font-size: 0.8rem; font-weight: 800;
+  color: white; text-align: center;
+  margin-top: 10px; display: none;
+}
+.noise-warning.visible { display: block; }
+
 /* ═══ QUIZ ═══ */
 #screen-quiz   { align-items: center; padding-bottom: 32px; background: linear-gradient(160deg, #1A3A2A 0%, #2D6A4F 40%, #52B788 100%); }
 .quiz-body { width: 100%; max-width: 460px; padding: 0 20px 20px; align-self: center; flex: 1; display: flex; flex-direction: column; gap: 14px; }
@@ -447,9 +486,23 @@ body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239
 
 <div class="audio-row">
     <button class="audio-btn" id="again-btn" onclick="markReview()" aria-label="Hear again">🔄</button>
-    <!-- <button class="audio-btn" id="play-btn"  onclick="playNormal()" aria-label="Hear word">🔊</button> -->
+    <!-- mic button — pronunciation checker -->
+    <div class="mic-wrap">
+      <div class="mic-waveform" id="mic-waveform">
+        <div class="bar" style="height:6px"></div>
+        <div class="bar" style="height:10px"></div>
+        <div class="bar" style="height:7px"></div>
+        <div class="bar" style="height:12px"></div>
+        <div class="bar" style="height:6px"></div>
+        <div class="bar" style="height:9px"></div>
+        <div class="bar" style="height:7px"></div>
+        <div class="bar" style="height:11px"></div>
+      </div>
+      <button class="mic-btn mic-idle" id="mic-btn" onclick="handleMicTap()" aria-label="Check pronunciation">🎤</button>
+    </div>
     <button class="audio-btn" id="gotit-btn" onclick="markLearned()" aria-label="Got it">✓</button>
   </div>
+  <div class="noise-warning" id="noise-warning">🔇 Too noisy — find a quieter spot and try again</div>
 </section>
 
 <!-- ═══ QUIZ — animated Babu, picture choice ═══ -->
@@ -499,6 +552,7 @@ body.theme-emotions #screen-stacks  { background: linear-gradient(160deg,#9F1239
 // ══ SUPABASE CONFIG ══
 const CARDS_ENDPOINT = 'https://iulwgadxcojjmbggvfrj.supabase.co/functions/v1/get-cards';
 const TTS_ENDPOINT   = 'https://iulwgadxcojjmbggvfrj.supabase.co/functions/v1/tts-proxy';
+const ASR_ENDPOINT   = 'https://iulwgadxcojjmbggvfrj.supabase.co/functions/v1/asr-proxy';
 
 // ══ FLASHCARD REFERENCE ══
 let CONTENT = {};
@@ -555,6 +609,7 @@ let state = {
   learnedCards: [], reviewCards: [],
   quizQuestions: [], quizIdx: 0, quizScore: 0,
   wrongAttempts: 0,  // track wrong attempts per question
+  micState: 'idle',  // idle | recording | processing | green | amber | red
   flaggedCards:    JSON.parse(localStorage.getItem('babu-flags')  || '[]'),
   completedStacks: JSON.parse(localStorage.getItem('babu-stacks') || '{}'),
   totalStars:      parseInt(localStorage.getItem('babu-stars')    || '0'),
@@ -661,6 +716,11 @@ function renderCard() {
   // Reset swipe labels
   document.getElementById('label-gotit').style.opacity = '0';
   document.getElementById('label-again').style.opacity  = '0';
+
+  // Reset mic to idle on new card
+  setMicState('idle');
+  document.getElementById('noise-warning').classList.remove('visible');
+  stopRecording();
 
   // Re-trigger pop animation
   const emojiEl = document.getElementById('card-emoji');
@@ -1105,6 +1165,200 @@ function showToast(msg) {
   el.textContent = msg; el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ══════════════════════════════════════════
+// PRONUNCIATION CHECKER
+// ══════════════════════════════════════════
+
+const MIC_COLORS = {
+  idle:       'mic-idle',
+  recording:  'mic-recording',
+  processing: 'mic-processing',
+  green:      'mic-green',
+  amber:      'mic-amber',
+  red:        'mic-red',
+};
+
+function setMicState(s) {
+  state.micState = s;
+  const btn = document.getElementById('mic-btn');
+  if (!btn) return;
+  btn.className = 'mic-btn ' + (MIC_COLORS[s] || 'mic-idle');
+}
+
+// ── Levenshtein edit distance ─────────────────────────────────
+function levenshtein(a, b) {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0)
+  );
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[a.length][b.length];
+}
+
+function pronunciationSimilarity(expected, got) {
+  const a = expected.toLowerCase().trim().replace(/[^a-z]/g, '');
+  const b = got.toLowerCase().trim().replace(/[^a-z]/g, '');
+  if (!a || !b) return 0;
+  const maxLen = Math.max(a.length, b.length);
+  return 1 - levenshtein(a, b) / maxLen;
+}
+
+// ── SNR check — runs before submitting to ASR ─────────────────
+// Returns true if audio is clean enough to send.
+function checkSNR(analyser) {
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  const avg = data.reduce((a, b) => a + b, 0) / data.length;
+  return avg > 8; // empirical threshold — adjust if needed
+}
+
+// ── Waveform animation ────────────────────────────────────────
+let waveformRAF = null;
+
+function startWaveform(analyser) {
+  const bars = document.querySelectorAll('#mic-waveform .bar');
+  function tick() {
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    const step = Math.floor(data.length / bars.length);
+    bars.forEach((bar, i) => {
+      const val = data[i * step] || 0;
+      bar.style.height = Math.max(4, Math.min(18, (val / 255) * 18)) + 'px';
+      bar.style.background = 'rgba(255,255,255,0.85)';
+    });
+    waveformRAF = requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function stopWaveform() {
+  if (waveformRAF) { cancelAnimationFrame(waveformRAF); waveformRAF = null; }
+  const bars = document.querySelectorAll('#mic-waveform .bar');
+  const heights = [6,10,7,12,6,9,7,11];
+  bars.forEach((bar, i) => {
+    bar.style.height = heights[i] + 'px';
+    bar.style.background = 'rgba(255,255,255,0.5)';
+  });
+}
+
+// ── MediaRecorder state ───────────────────────────────────────
+let mediaRecorder  = null;
+let audioChunks    = [];
+let audioContext   = null;
+let analyserNode   = null;
+let micStream      = null;
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (audioContext) { audioContext.close(); audioContext = null; analyserNode = null; }
+  stopWaveform();
+}
+
+// ── Main mic tap handler ──────────────────────────────────────
+async function handleMicTap() {
+  // If currently green (correct), just reset to idle — child wants to retry
+  if (state.micState === 'green' || state.micState === 'amber' || state.micState === 'red') {
+    setMicState('idle');
+    document.getElementById('noise-warning').classList.remove('visible');
+    return;
+  }
+
+  // If currently recording, stop early (child released tap)
+  if (state.micState === 'recording') {
+    stopRecording();
+    setMicState('processing');
+    return;
+  }
+
+  // If processing, ignore tap
+  if (state.micState === 'processing') return;
+
+  // ── Idle → start recording ────────────────────────────────
+  // Stop any currently playing audio first — no overlap
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  document.getElementById('noise-warning').classList.remove('visible');
+
+  try {
+    micStream  = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(micStream);
+    analyserNode = audioContext.createAnalyser();
+    analyserNode.fftSize = 256;
+    source.connect(analyserNode);
+
+    audioChunks  = [];
+    mediaRecorder = new MediaRecorder(micStream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+
+    mediaRecorder.onstop = async () => {
+      stopWaveform();
+
+      // SNR check — use analyser snapshot before context closes
+      const snrOk = analyserNode ? checkSNR(analyserNode) : true;
+      stopRecording();
+
+      if (!snrOk) {
+        setMicState('idle');
+        document.getElementById('noise-warning').classList.add('visible');
+        return;
+      }
+
+      setMicState('processing');
+      await submitToASR();
+    };
+
+    mediaRecorder.start();
+    setMicState('recording');
+    startWaveform(analyserNode);
+
+    // Auto-stop after 6 seconds max
+    setTimeout(() => {
+      if (state.micState === 'recording') stopRecording();
+    }, 6000);
+
+  } catch (err) {
+    console.error('Mic error:', err);
+    setMicState('idle');
+    showToast('Microphone not available');
+  }
+}
+
+// ── Submit audio to asr-proxy and score result ────────────────
+async function submitToASR() {
+  const card = CONTENT[state.topic].stacks[state.stackIdx].cards[state.cardIdx];
+
+  try {
+    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+    const form = new FormData();
+    form.append('audio', blob, 'recording.webm');
+    form.append('topic', state.topic);
+
+    const res = await fetch(ASR_ENDPOINT, { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      // ASR failed — return to idle silently, don't penalise child
+      setMicState('idle');
+      return;
+    }
+
+    const sim = pronunciationSimilarity(card.tr, data.transcript);
+
+    if      (sim >= 0.85) setMicState('green');
+    else if (sim >= 0.60) setMicState('amber');
+    else                  setMicState('red');
+
+  } catch (err) {
+    console.error('ASR submit error:', err);
+    setMicState('idle');
+  }
 }
 
 // Keyboard shortcuts (card screen)
