@@ -135,13 +135,18 @@ def delta_metric(label, value, delta, prefix="$"):
 
 def compute_sharpe(history_df, starting_capital):
     if history_df.empty or len(history_df) < 5:
-        return "N/A"
+        return "N/A (insufficient data)"
     try:
         values  = history_df["value"].values
         returns = pd.Series(values).pct_change().dropna()
-        if returns.std() == 0:
+        if len(returns) < 3:
+            return "N/A (insufficient data)"
+        std = returns.std()
+        if std == 0 or pd.isna(std) or std < 1e-10:
+            return "N/A (no volatility yet)"
+        sharpe = (returns.mean() / std) * np.sqrt(252)
+        if pd.isna(sharpe) or np.isinf(sharpe):
             return "N/A"
-        sharpe = (returns.mean() / returns.std()) * np.sqrt(252)
         return f"{sharpe:.2f}"
     except Exception:
         return "N/A"
