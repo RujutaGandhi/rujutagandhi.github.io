@@ -125,13 +125,10 @@ def delta_metric(label, value, delta, prefix="$"):
             delta=f"{prefix}{delta:+,.2f} vs start",
         )
     else:
-        # Negative: pass the raw negative number so Streamlit shows red + down arrow
-        # delta_color="inverse" would flip to green — we don't want that
-        # Passing the numeric value directly works correctly
         st.metric(
             label=label,
             value=f"{prefix}{value:,.2f}",
-            delta=delta,  # raw negative number → red down arrow
+            delta=round(delta, 2),  # round to avoid floating point garbage
             delta_color="normal",
         )
 
