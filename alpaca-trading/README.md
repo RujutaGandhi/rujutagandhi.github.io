@@ -19,6 +19,7 @@ Two parallel trading strategies run 24/7 on Render, scanning US stocks and crypt
 | Max position | 5% stocks / 2% crypto | 15% stocks / 20% crypto |
 | Daily stop | 15% loss | 20% loss |
 | Kill switch | Portfolio < $700 | Portfolio < $600 |
+| Regime modes | MOMENTUM / MEAN_REVERSION (cash in DEFENSIVE + MACRO_EVENT) | MOMENTUM / MEAN_REVERSION / DEFENSIVE (short SPY/QQQ) / MACRO_EVENT |
 
 ---
 
@@ -69,6 +70,12 @@ Layer 5 — Self-Tuning Review (4:05pm ET daily)
   → Claude outputs JSON parameter adjustments
   → Apply with safety bounds → Save to state.json
   → Next morning both strategies load updated parameters
+
+Layer 6 — Adaptive Macro Regime (every cycle, before Layer 1)
+  Fetch VIX (Yahoo Finance) → Check SPY vs 200-day MA → Check VIX spike (>20% in 3 days)
+  → Assign mode: MOMENTUM / MEAN_REVERSION / DEFENSIVE / MACRO_EVENT
+  → Conservative: DEFENSIVE/MACRO_EVENT = hold cash, no Claude calls
+  → Aggressive: DEFENSIVE = short SPY/QQQ only (no new longs)
 ```
 
 ---
@@ -92,7 +99,9 @@ alpaca-trading/
 │   ├── earnings.py          # Earnings calendar veto
 │   ├── fear_greed.py        # CNN Fear & Greed Index
 │   ├── congressional.py     # Capitol Trades API
-│   ├── scoring.py           # Weighted point system (all 8 signals)
+│   ├── scoring.py           # Weighted point system (all 9 signals)
+│   ├── vix.py               # VIX fetcher from Yahoo Finance (free, no API key)
+│   ├── macro_regime.py      # VIX + SPY/200MA → MOMENTUM/MEAN_REVERSION/DEFENSIVE/MACRO_EVENT
 │   ├── review.py            # End-of-day Claude review + parameter tuning
 │   └── state.py             # Persists adjustments to state.json
 │   ├── social_sentiment.py  # Reddit + StockTwits → Claude sentiment scoring
@@ -102,7 +111,9 @@ alpaca-trading/
 │   ├── test_connection.py   # Level 2: Alpaca connection + data pipeline
 │   ├── test_dry_run.py      # Level 3: Full cycle without placing orders
 │   ├── test_signals.py      # Phase 1-4 signal module tests
-│   └── test_phase5.py       # Phase 5 state + review loop tests
+│   ├── test_phase5.py       # Phase 5 state + review loop tests
+│   ├── test_phase6.py       # Phase 6: screener, social sentiment, exclusions
+│   └── test_phase7.py       # Phase 7: adaptive regime, ETF shorts, combined kill switch (33 checks)
 │   └── test_phase6.py       # Phase 6: screener, social sentiment, exclusions
 ├── main.py                  # Entry point — runs both strategies + health server
 ├── dashboard.py             # Streamlit performance dashboard
@@ -147,6 +158,8 @@ python3 tests/test_dry_run.py
 python3 tests/test_signals.py
 python3 tests/test_phase5.py
 python3 tests/test_phase6.py
+python3 tests/test_phase7.py
+python3 tests/test_phase6.py
 
 ```
 
@@ -171,6 +184,12 @@ streamlit run dashboard.py   # separate terminal
 
 **Self-tuning daily review** — Claude reads its own trade log at 4:05pm ET, identifies patterns, and outputs JSON parameter adjustments within safety bounds.
 
+**Adaptive regime over static personas** — The original bot always ran the same strategy regardless of market conditions. Phase 7 reads VIX, SPY vs 200-day MA, and a quantitative VIX spike trigger every cycle to assign one of four modes. Conservative holds cash entirely in DEFENSIVE and MACRO_EVENT — Claude is never called, saving API cost and preventing bad trades in the wrong environment.
+
+**ETF shorts over single-stock shorts** — In DEFENSIVE mode, Aggressive shorts SPY or QQQ only. Single-stock shorts expose the strategy to catastrophic squeeze risk. Index ETF shorts are liquid, diversified, and can't squeeze. This was a deliberate risk management decision over maximising potential return.
+
+**Combined portfolio kill switch** — Individual strategy floors protect each account in isolation but can't see the combined picture. A $1,700 combined floor (−15% on $2,000) halts both strategies if total equity drops significantly, even when neither individual floor has triggered.
+
 **Dynamic screener over fixed stock list** — Instead of always scanning the same 10 stocks, the screener fetches the most active and highest momentum US stocks from Alpaca each cycle. UBER is always included. AMZN is permanently excluded due to trading restrictions.
 
 **Reddit + StockTwits sentiment** — Retail momentum often shows up on social media before it shows up in price. Both APIs are free with no auth required. Claude scores the combined signal, adding up to +2/-2 to the weighted scoring engine.
@@ -178,7 +197,7 @@ streamlit run dashboard.py   # separate terminal
 
 ## Tech Stack
 
-Claude Sonnet · Alpaca Markets API · Python 3.11 · Streamlit · Render.com · SendGrid · Alpaca News API · CNN Fear & Greed · Capitol Trades API · pandas · cron-job.org
+Claude Sonnet · Alpaca Markets API · Python 3.11 · Streamlit · Render.com · SendGrid · Alpaca News API · CNN Fear & Greed · Capitol Trades API · Reddit API · StockTwits API · Yahoo Finance (VIX) · pandas · cron-job.org
 
 ---
 

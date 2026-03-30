@@ -577,7 +577,7 @@
       <div class="demo-card" onclick="openModal('trading-bot')" style="cursor:pointer;">
       <div class="demo-icon">📈</div>
       <h3>AI Paper Trading Bot</h3>
-      <p>A dual-strategy autonomous trading system powered by Claude AI. Two parallel strategies — Conservative and Aggressive — run 24/7 on real market data with weighted signal scoring, self-tuning daily reviews, and hard kill switches.</p>
+      <p>A dual-strategy autonomous trading system powered by Claude AI. Two parallel strategies adapt in real time to market regime — momentum, mean reversion, defensive, or macro event — with ETF short selling, combined portfolio kill switch, and VIX-based macro detection.</p>
       <div class="demo-tech">
         <span>Claude Sonnet</span>
         <span>Alpaca Markets</span>
@@ -684,7 +684,7 @@
  
       <div class="modal-section">
         <div class="modal-section-label">What I Built</div>
-        <p>A dual-strategy autonomous paper trading bot that runs 24/7 on Render, scanning US stocks and crypto every hour. The Conservative strategy ($1,000, Bridgewater-style discipline) and Aggressive strategy ($1,000, Citadel-style momentum) operate in parallel on separate Alpaca paper accounts. Claude makes every buy/sell/hold decision using a weighted 9-signal scoring engine. A dynamic screener replaces the fixed stock list — fetching the most active and highest-momentum US stocks from Alpaca each cycle so the bot always trades what's actually moving. A self-tuning end-of-day review fires at 4:05pm ET — Claude analyzes the day's trades and adjusts RSI thresholds, ATR multipliers, and strategy mode for the next session.</p>
+        <p>A dual-strategy autonomous paper trading bot that runs 24/7 on Render, scanning US stocks and crypto every hour. The Conservative strategy ($1,000, Bridgewater-style discipline) and Aggressive strategy ($1,000, Citadel-style momentum) operate in parallel on separate Alpaca paper accounts. Claude makes every buy/sell/hold decision using a weighted 9-signal scoring engine. A dynamic screener replaces the fixed stock list — fetching the most active and highest-momentum US stocks from Alpaca each cycle so the bot always trades what's actually moving. A self-tuning end-of-day review fires at 4:05pm ET — Claude analyzes the day's trades and adjusts RSI thresholds, ATR multipliers, and strategy mode for the next session. Phase 7 adds adaptive macro regime detection — the bot reads VIX, SPY vs 200-day MA, and a quantitative spike trigger to switch between four strategy modes every cycle.</p>
       </div>
  
       <div class="modal-section">
@@ -699,7 +699,10 @@
           <li><strong>Whole shares for stocks</strong> — Alpaca doesn't support bracket orders on fractional shares. Rounded position sizes to whole shares to enable automatic stop-loss and take-profit on all stock trades.</li>
           <li><strong>Self-tuning daily review loop</strong> — Static bots don't learn. Claude reviews its own trade log at 4:05pm ET, identifies what worked and what didn't, and outputs JSON parameter adjustments with safety bounds checking to prevent runaway values.</li>
           <li><strong>SendGrid over Gmail SMTP</strong> — Render's free tier blocks outbound SMTP. Switched to SendGrid HTTP API (Mail Send only, restricted key) which works on all Render tiers and is more secure by design.</li>
-          <li><strong>Phase-based build with eval gates</strong> — Built in 5 phases, each with its own test file before proceeding. 22 checks in test_dry_run.py, 35 in test_signals.py, 25 in test_phase5.py, 22 checks in test_phase6.py — all passing before deployment.</li>
+          <li><strong>Phase-based build with eval gates</strong> — Built in 7 phases, each with its own test file before proceeding. 22 checks in test_dry_run.py, 35 in test_signals.py, 25 in test_phase5.py, 22 checks in test_phase6.py, 33 checks in test_phase7.py — all passing before deployment.</li>
+          <li><strong>Adaptive regime strategy over static personas</strong> — Instead of always running the same Bridgewater or Citadel persona, both strategies now read live macro conditions (VIX, SPY vs 200MA, VIX spike) every cycle and switch between four modes: MOMENTUM, MEAN_REVERSION, DEFENSIVE, and MACRO_EVENT. Conservative holds cash in DEFENSIVE and MACRO_EVENT — Claude is never called. This eliminated the core failure mode of a momentum bot running in a bear market.</li>
+          <li><strong>ETF short selling over single-stock shorts</strong> — In DEFENSIVE mode, Aggressive can short SPY or QQQ only. Single-stock shorts (GameStop-style squeezes) are explicitly banned. ETF shorts are liquid, can't squeeze, and provide clean bear market exposure without catastrophic tail risk.</li>
+          <li><strong>Combined portfolio kill switch</strong> — Individual strategy floors ($700 Conservative, $600 Aggressive) protect each account in isolation. Added a combined check: if total equity across both accounts drops below $1,700 (−15% on $2,000), both strategies halt immediately. Catches scenarios where neither individual floor triggers but combined losses are significant.</li>
           <li><strong>Dynamic screener over fixed stock list</strong> — Instead of always scanning the same 10 stocks, the screener fetches the most active and highest-momentum US stocks from Alpaca each cycle. UBER is permanently included. AMZN is permanently excluded due to trading restrictions — enforced at the config level and tested in the Phase 6 test suite.</li>
 <li><strong>Reddit + StockTwits social sentiment</strong> — Retail momentum often appears on social media before price moves. Both APIs are free with no authentication required. Claude scores the combined signal (+2 bullish / -2 bearish) as the 9th weighted signal in the scoring engine.</li>
         </ul>
@@ -748,10 +751,10 @@
       <div class="modal-section">
         <div class="modal-section-label">What's Next</div>
         <ul>
-          <li><strong>Dashboard V3:</strong> Signal scorecard per trade and news headlines panel — requires adding Supabase decision logging so data persists across services.</li>
-          <li><strong>Multi-Agent Adversarial Technique:</strong> Create agents with different identities to debate the best move.</li>
-          <li><strong>Options layer:</strong> Aggressive strategy V2 — use Alpaca Options API to buy calls/puts on high-conviction signals for leveraged upside with capped downside</li>
-          <li><strong>Real money deployment:</strong> After 2 weeks of paper trading validation with documented Sharpe ratio and win rate</li>
+          <li><strong>Phase 7 — shipped:</strong> Adaptive regime detection (MOMENTUM / MEAN_REVERSION / DEFENSIVE / MACRO_EVENT), ETF short selling in bear markets, combined $1,700 portfolio kill switch, VIX + SPY/200MA macro trigger — 33 tests passing.</li>
+          <li><strong>Dashboard V3:</strong> Signal scorecard per trade and news headlines panel — requires Supabase decision logging so data persists across Render services.</li>
+          <li><strong>Real money deployment:</strong> After 4–6 weeks of paper trading validation with documented Sharpe ratio, win rate, and regime-adjusted returns.</li>
+          <li><strong>Options layer:</strong> Aggressive strategy V3 — calls/puts on high-conviction signals for leveraged upside with capped downside.</li>
         </ul>
       </div>
  
