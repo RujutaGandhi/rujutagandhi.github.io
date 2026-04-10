@@ -1,6 +1,6 @@
 # rujutagandhi.github.io
 
-Personal portfolio site for Rujuta Gandhi — AI & Digital Product Manager.
+Personal portfolio site for Rujuta Gandhi — AI & Digital Product Manager |  Chief of Staff.
 
 🌐 **Live site:** [rujutagandhi.github.io](https://rujutagandhi.github.io)
 
